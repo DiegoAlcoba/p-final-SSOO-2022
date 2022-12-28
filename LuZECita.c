@@ -25,13 +25,13 @@ int main(int argc, char* argv[]) {
 	int resultado_responsable_reparaciones= pthread_create(&responsable_reparaciones, NULL, hilo_creado, NULL);
 	if(resultado_responsable_reparaciones!=0){
 		//ha ocurrido un error al crear el hilo
-		perror("Error al crear el hilo tecnico\n");
+		perror("Error al crear el hilo responsable de reparaciones\n");
 		return 1;
 	}
 	int resultado_encargado= pthread_create(&encargado, NULL, hilo_creado, NULL);
 	if(resultado_encargado!=0){
 		//ha ocurrido un error al crear el hilo
-		perror("Error al crear el hilo tecnico\n");
+		perror("Error al crear el hilo encargado\n");
 		return 1;
 	}
 	return 0;
