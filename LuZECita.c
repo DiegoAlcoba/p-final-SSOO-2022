@@ -18,20 +18,20 @@ int main(int argc, char* argv[]) {
 	pthread_t tecnico, responsable_reparaciones, encargado, clientes_app, clientes_red;
 	int resultado_tecnico= pthread_create(&tecnico, NULL, hilo_creado, NULL);
 	if(resultado_tecnico!=0){
-		//ha ocurrido un erro al crear el hilo
-		perror("Error al creal el hilo tecnico\n");
+		//ha ocurrido un error al crear el hilo
+		perror("Error al crear el hilo tecnico\n");
 		return 1;
 	}
 	int resultado_responsable_reparaciones= pthread_create(&responsable_reparaciones, NULL, hilo_creado, NULL);
 	if(resultado_responsable_reparaciones!=0){
-		//ha ocurrido un erro al crear el hilo
-		perror("Error al creal el hilo tecnico\n");
+		//ha ocurrido un error al crear el hilo
+		perror("Error al crear el hilo tecnico\n");
 		return 1;
 	}
 	int resultado_encargado= pthread_create(&encargado, NULL, hilo_creado, NULL);
 	if(resultado_encargado!=0){
-		//ha ocurrido un erro al crear el hilo
-		perror("Error al creal el hilo tecnico\n");
+		//ha ocurrido un error al crear el hilo
+		perror("Error al crear el hilo tecnico\n");
 		return 1;
 	}
 	return 0;
