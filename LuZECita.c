@@ -4,8 +4,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+
 int main() {
 
+printf("Empieza la practica");
 
 	return 0;
 }
