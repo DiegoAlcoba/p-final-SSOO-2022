@@ -8,8 +8,9 @@
 #define NUM_RESPONSABLE_REPARACIONES 2
 #define NUM_ENCARGADO 1
 
-void* hilo_creado(void *arg){
+void *hilo_creado(void *arg){
 	printf("El hilo se ha creado correctamente\n");
+	pthread_exit(NULL);
 }
 
 
