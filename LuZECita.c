@@ -128,7 +128,6 @@ void atender_cliente_app(){
 		}
 	}else{}
 
-<<<<<<< HEAD
 /*Función que calcula números aleatorios*/
 int calculaAleatorios(int min, int max) {
 	srand(time(NULL));
@@ -150,10 +149,8 @@ void writeLogMessage(char *id, char *msg) {
 	fclose(logFile);
 }
 
-=======
 //IMPORTANTE::::::AÑADIR CONDICION DE QUE SI ESTAN LOS DOS OCUPADOS ATENDERLOS ENCARGADO
-}
->>>>>>> 689c80b61b4a59839bc4bdd19f6f4fc482f6ed80
+
 //funcion para atender a un cliente
 void atender_cliente(){
 	printf("Se esta atendiendo al cliente %d (%c)\n, c.id, c.tipo");
@@ -214,7 +211,6 @@ int main(int argc, char* argv[]) {
 	int nClientes = 0;
 	int nClientesApp = 0;
 	int nClientesRed = 0;
-	int nSolicitudesDomiciliarias = 0; //Imagino que este también hace falta, anque puede que con el array sea suficiente
 
 	//Listas clientes y trabajadores
 
@@ -223,10 +219,17 @@ int main(int argc, char* argv[]) {
 	fclose(logFile);
 
 	//Variables relativas a la solicitud de atención domiciliaria
+	int nSolicitudesDomiciliarias = 0; //Imagino que este también hace falta, anque puede que con el array sea suficiente
 
 	//Variables condicion
 
 	/* CREACIÓN DE HILOS DE TECNICOS, RESPONSABLES, ENCARGADO Y ATENCION DOMICILIARIA */
+	pthread_create(&tecnico1, NULL, accionesTecnico, (void *)/*estructura en cuestión*/);
+	pthread_create(&tecnico2, NULL, accionesTecnico, (void *)/*estructura en cuestión*/);
+	pthread_create(&responsable1, NULL, accionesTecnico, (void *)/*estructura en cuestión*/);
+	pthread_create(&responsable2, NULL, accionesTecnico, (void *)/*estructura en cuestión*/);
+	pthread_create(&encargado, NULL, accionesEncargado, (void *)/*estructura en cuestión*/);
+	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, (void *)/*estructura en cuestión*/);
 
 	/* ESPERAR POR SEÑALES INFINITAMENTE */
 	while(1) {
