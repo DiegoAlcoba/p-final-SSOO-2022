@@ -81,7 +81,10 @@ Cliente generar_cliente(){
 	static int id = 0;
 	Cliente c;
 	c.id = ++id;
-	c.atendido = 0;//0 si no esta atendido 1 sis si
+	c.atendido = 0;//0 si no esta atendido, 1 si si lo esta
+
+	//genera un tipo de cliente aleatoriamente(para un cliente de app usaremos a, para uno de red usaremos r)
+	c.tipo = rand()%2==0 ? 'a' : 'r';
 
 	return c;
 }
@@ -153,7 +156,7 @@ void writeLogMessage(char *id, char *msg) {
 >>>>>>> 689c80b61b4a59839bc4bdd19f6f4fc482f6ed80
 //funcion para atender a un cliente
 void atender_cliente(){
-	printf("Se esta atendiendo al cliente %d (%c)\n, ");
+	printf("Se esta atendiendo al cliente %d (%c)\n, c.id, c.tipo");
 	sleep(1);	//se simula el tiempo de atencion
 	}
 
