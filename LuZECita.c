@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include <string.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -12,8 +13,12 @@
 #include <linux/unistd.h>
 #include <errno.h>
 
-#define NTECNICOS 2.0
-#define NRESPONSABLES 2.0
+//Numero maximo de clientes que se pueden atender a la vez
+#define MAX_CLIENTES 20
+
+//Numero de tecnicos, responsables de reparaciones y encargados
+#define NUM_TECNICOS 2
+#define NUM_RESPONSABLES 2
 #define NENCARGADOS 1.0
 
 /*Variables globales*/
@@ -32,22 +37,40 @@ struct cliente *arrayClientes;
 struct cliente *arrayClientesSolicitudes; //Clientes a los que tiene que visitar el responsable
 
 /*Estructuras*/
-struct cliente {
-	char *id;
+//estructura que guarda la informacion del cliente
+typedef struct {
+	char *id;		//no seria mejor poner el id como int?
 	int atendido;
 	char *tipo;
 	int prioridad;
-	int solicitud; //Quizás mejor un booleano? Solicitud sí/no
-};
+	bool solicitud;
+}Cliente;
 
-struct trabajador { 
+//estructura que guarda la informacion del trabajador
+typedef struct { 
 	char *id;
 	int clientesAtendidos;
 	char *tipo; //Tecnico, responsable o encargado
-};
+}Trabajador;
 
 /*Fichero de log*/
 FILE *logFile;
+
+//funcion para generar un cliente
+Cliente generar_cliente(){
+	static int id = 0;
+	Cliente c;
+	c.id = ++id;
+	c.atendido = false;
+
+	return c;
+}
+
+//funcion para atender a un cliente
+void atender_cliente(){
+	printf("Se esta atendiendo al cliente %d (%c)\n, ");
+	sleep(1);	//se simula el tiempo de atencion
+}
 
 int main(int argc, char* argv[]) {
 
