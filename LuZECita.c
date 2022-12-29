@@ -19,7 +19,7 @@
 //Numero de tecnicos, responsables de reparaciones y encargados
 #define NUM_TECNICOS 2
 #define NUM_RESPONSABLES 2
-#define NENCARGADOS 1.0
+#define NUM_ENCARGADOS 1.0
 
 /*Variables globales*/
 pthread_mutex_t semaforoFichero;
@@ -30,6 +30,7 @@ pthread_t *arrayHilosClientes; //Array de hilo-cliente
 
 int nClientesApp; //Contador clientes app
 int nClientesRed; //Contador clientes red
+int nClientes;	//Número total de clientes
 int nSolicitudesDomiciliarias; //N solicitudes domiciliarias (4 para que el responsable viaje)
 
 /*Arrays dinámicos que almacenan a los clientes (estructura)*/
@@ -66,17 +67,110 @@ Cliente generar_cliente(){
 	return c;
 }
 
+/*Función que calcula números aleatorios*/
+int calculaAleatorios(int min, int max) {
+	srand(time(NULL));
+	
+	return rand() % (max - min + 1) + min;
+}
+
+/*Función que escribe los mensajes en log*/
+void writeLogMessage(char *id, char *msg) {
+	//Se calcula la hora actual
+	time_t now = time(0);
+	struct tm *tlocal = localtime(&now);
+	char stnow[25];
+	strftime(stnow, 25, "%d/%m/%y  %H:%M:%S", tlocal);
+
+	//Escribimos en el log
+	logFile = fopen(logFileName, "a");
+	fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
+	fclose(logFile);
+}
+
 //funcion para atender a un cliente
 void atender_cliente(){
 	printf("Se esta atendiendo al cliente %d (%c)\n, ");
 	sleep(1);	//se simula el tiempo de atencion
 }
 
+/*Función que finaliza el programa al recibir la señal*/
+void finalizarPrograma (int signal) {
+
+	//Antes de que finalice se debe terminar de atender a todos los clientes en cola
+
+	printf("\nAdiós!\n");
+
+	exit(0);
+}
+
 int main(int argc, char* argv[]) {
+	
+	/* DECLARACIONES DE RECURSOS */
+	pthread_t tecnico1, tecnico2, responsable1, responsable2, encargado, atencionDomiciliaria;
 
+	arrayHilosClientes = (pthread_t *) malloc (nClientes * sizeOf(struct cliente *)); //Array dinámico de hilos de clientes
+	arrayClientes = (struct cliente *) malloc (nCliente * sizeOf(struct cliente *)); //array del total de clientes
+	arrayClientesSolicitudes = (struct cliente *) malloc (4 * sizeOf(struct cliente *)); // array de clientes con solicitudes (4 para que salga el responsable)
+	
+	/*Mostramos por pantalla el PID del programa para enviar las señales*/
+	printf("\nPID: %s\n", getpid());
 
+	/* SEÑALES */
+	//Cliente App
+	if (signal(SIGUSR1, nuevoCliente) == SIG_ERR) {
+		perror("Error en la señal");
+
+		exit(-1);
+	}
+
+	//Cliente Red
+	if (signal(SIGUSR2, nuevoCliente) == SIG_ERR) {
+		perror("Error en la señal");
+
+		exit(-1);
+	}
+	
+	//Finalización del programa 
+	if (signal(SIGINT, finalizarPrograma) == SIG_ERR) {
+		perror("Error en la señal");
+
+		exit(-1);
+	}
+
+	/* INICIALIZACIÓN DE RECURSOS */
+	//Inicialización de los semáforos
+	if (pthread_mutex_init(&semaforoFichero, NULL) != 0) exit(-1);
+	if (pthread_mutex_init(&semaforoColaClientes, NULL) != 0) exit(-1);
+	if (pthread_mutex_init(&semaforoSolicitudes, NULL) != 0) exit(-1);
+
+	//Contadores de clientes
+	int nClientes = 0;
+	int nClientesApp = 0;
+	int nClientesRed = 0;
+	int nSolicitudesDomiciliarias = 0; //Imagino que este también hace falta, anque puede que con el array sea suficiente
+
+	//Listas clientes y trabajadores
+
+	//Fichero de log
+	logFile = fopen("resgistroTiempos.log", "wt"); //Comprobar si wt es la opcion correcta
+	fclose(logFile);
+
+	//Variables relativas a la solicitud de atención domiciliaria
+
+	//Variables condicion
+
+	/* CREACIÓN DE HILOS DE TECNICOS, RESPONSABLES, ENCARGADO Y ATENCION DOMICILIARIA */
+
+	/* ESPERAR POR SEÑALES INFINITAMENTE */
+	while(1) {
+		pause();
+	}
+
+	/* LIBERACIÓN DE MEMORIA */
+	free(arrayHilosClientes);
+	free(arrayClientes);
+	free(arrayClientesSolicitudes);
 
 	return 0;
 }
-
-
