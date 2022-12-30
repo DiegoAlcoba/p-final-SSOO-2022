@@ -19,14 +19,15 @@
 //Numero de tecnicos, responsables de reparaciones y encargados
 #define NUM_TECNICOS 2
 #define NUM_RESPONSABLES 2
-#define NUM_ENCARGADOS 1.0
+#define NUM_ENCARGADOS 1
 
 /*Variables globales*/
 pthread_mutex_t semaforoFichero;
 pthread_mutex_t semaforoColaClientes;
 pthread_mutex_t semaforoSolicitudes;
 
-pthread_t *arrayHilosClientes; //Array de hilo-cliente
+//Array de hilo-cliente
+pthread_t *arrayHilosClientes;
 
 int nClientesApp; //Contador clientes app
 int nClientesRed; //Contador clientes red
@@ -40,18 +41,18 @@ struct cliente *arrayClientesSolicitudes; //Clientes a los que tiene que visitar
 /*Estructuras*/
 //estructura que guarda la informacion del cliente
 typedef struct {
-	char *id;		//no seria mejor poner el id como int? NO PORQUE EL IDENTIFICADOR ES CLIAPP_1
-	int atendido; //0 si no esta atendido 1 si si 
+	int id;		//no seria mejor poner el id como int? NO PORQUE EL IDENTIFICADOR ES CLIAPP_1
+	int atendido; //0 si no esta atendido 1 si si lo esta
 	char *tipo;
-	int prioridad;
+	int prioridad;//Array de hilo-cliente
 	bool solicitud;
 }Cliente;
 
 //estructura que guarda la informacion del trabajador
 typedef struct { 
-	char *id;
+	int id;
 	int clientesAtendidos;
-	char *tipo; //Tecnico, responsable o encargado T R oE
+	char *tipo; //Tecnico, responsable o encargado T, R o E
 	int libre; //0 si esta libre 1 si esta ocupado
 }Trabajador;
 
@@ -93,12 +94,12 @@ void atender_cliente_app(){
 	//IMPORTANTE:::::AÑADIR LO DE LA PRIORIDAD
 	//Se comprueba si el tenico esta libre
 	if(tecnico_1.libre==0){
-		printf("Se va a atender a un cliente con problemas en la app");
-		printf("Bienvenido cliente le esta atendiendo el tecnico_1");
+		printf("Se va a atender a un cliente con problemas en la app\n");
+		printf("Bienvenido cliente, le esta atendiendo el tecnico 1\n");
 		tecnico1.libre=1;
 		//Compruebo que el cliente que atiendo sea de app
 		if(cliente.tipo==a){
-			printf("El cliente se ha atendido");
+			printf("El cliente ha sido atendido\n");
 			//Cambio su estado a atendido
 			cliente.atendido=1;
 			++tecnico_1.clientesAtendidos;
@@ -107,15 +108,14 @@ void atender_cliente_app(){
 				tecnico_1.libre=1;
 				sleep(5);
 			}
-		
 		}
 	}else if (tecnico_2.libre==0){
-		printf("Se va a atender a un cliente con problemas en la app");
-		printf("Bienvenido cliente le esta atendiendo el tecnico_2");
+		printf("Se va a atender a un cliente con problemas en la app\n");
+		printf("Bienvenido cliente, le esta atendiendo el tecnico 2\n");
 		tecnico2.libre=1;
 		//Compruebo que el cliente que atiendo sea de app
 		if(cliente.tipo==a){
-			printf("El cliente se ha atendido");
+			printf("El cliente ha sido atendido\n");
 			//Cambio su estado a atendido
 			cliente.atendido=1;
 			++tecnico_2.clientesAtendidos;
@@ -124,10 +124,11 @@ void atender_cliente_app(){
 				tecnico_2.libre=1;
 				sleep(5);
 			}
-		
 		}
-	}else{}
-
+	}else{
+		printf("Ningun tecnico esta libre en este momento\n");
+	}
+}
 /*Función que calcula números aleatorios*/
 int calculaAleatorios(int min, int max) {
 	srand(time(NULL));
@@ -155,7 +156,7 @@ void writeLogMessage(char *id, char *msg) {
 void atender_cliente(){
 	printf("Se esta atendiendo al cliente %d (%c)\n, c.id, c.tipo");
 	sleep(1);	//se simula el tiempo de atencion
-	}
+}
 
 /*Función que finaliza el programa al recibir la señal*/
 void finalizarPrograma (int signal) {
