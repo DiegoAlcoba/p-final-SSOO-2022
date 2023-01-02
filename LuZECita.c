@@ -316,7 +316,7 @@ int main(int argc, char* argv[]) {
 	pthread_create(&responsable1, NULL, accionesTecnico, (void *) responsable_1);
 	pthread_create(&responsable2, NULL, accionesTecnico, (void *) responsable_2);
 	pthread_create(&encargado, NULL, accionesEncargado, (void *) encargado_);
-	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, (void *)/*estructura en cuestión*/);
+	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, (void *)/*argumentos necesarios para la función, ningún trabajador en particular*/);
 
 	/* ESPERAR POR SEÑALES INFINITAMENTE */
 	while(1) {
