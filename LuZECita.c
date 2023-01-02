@@ -40,25 +40,26 @@ struct cliente *arrayClientesSolicitudes; //Clientes a los que tiene que visitar
 
 /*Estructuras*/
 //estructura que guarda la informacion del cliente
-typedef struct {
-	int id;		//no seria mejor poner el id como int? NO PORQUE EL IDENTIFICADOR ES CLIAPP_1
-	int atendido; //0 si no esta atendido 1 si si lo esta
+struct cliente{
+	char *id;		//no seria mejor poner el id como int? NO PORQUE EL IDENTIFICADOR ES CLIAPP_1
+	int atendido;	//0 no atendido, 1 está siendo atendido, 2 ha sido atendido
 	char *tipo;
 	int prioridad;//Array de hilo-cliente
 	bool solicitud;
-}Cliente;
+};
 
 //estructura que guarda la informacion del trabajador
-typedef struct { 
-	int id;
+struct trabajador{ 
+	char *id;	
 	int clientesAtendidos;
 	char *tipo; //Tecnico, responsable o encargado T, R o E
 	int libre; //0 si esta libre 1 si esta ocupado
-}Trabajador;
+};
 
 /*Fichero de log*/
 FILE *logFile;
 
+/************************************************************************************/
 //funcion para crear un tecnico
 Trabajador generar_Tecnico(){
 	//Tecnico 1
@@ -89,7 +90,9 @@ Cliente generar_cliente(){
 
 	return c;
 }
-/*funcion del encargado es decir atender a los clientes con problemas en la app*/
+/************************************************************************************/
+
+/*funcion del técnico (CUIDADO) es decir atender a los clientes con problemas en la app*/
 void atender_cliente_app(){
 	//IMPORTANTE:::::AÑADIR LO DE LA PRIORIDAD
 	//Se comprueba si el tenico esta libre
@@ -213,7 +216,89 @@ int main(int argc, char* argv[]) {
 	int nClientesApp = 0;
 	int nClientesRed = 0;
 
-	//Listas clientes y trabajadores
+	//Lista clientes
+	struct cliente *clienteApp;
+		clienteApp -> id = (char *) malloc (12 * sizeof(char));
+		clienteApp -> id = "cliapp_"; //Luego en cada cliente creado se le añade el número al final de la cadena de caracteres con ¿strcat? creo
+		
+		clienteApp -> atendido = 0;
+
+		clienteApp -> tipo = (char *) malloc (12 * sizeof(char));
+		clienteApp -> tipo = "Aplicacion";
+
+		clienteApp -> prioridad = 0;
+		clienteApp -> solicitud = false;
+
+	struct cliente *clienteRed ;
+		clienteRed  -> id = (char *) malloc (12 * sizeof(char));
+		clienteRed  -> id = "clired_"; //Luego en cada cliente creado se le añade el número al final de la cadena de caracteres con ¿strcat? creo
+		
+		clienteRed  -> atendido = 0;
+
+		clienteRed  -> tipo = (char *) malloc (18 * sizeof(char));
+		clienteRed  -> tipo = "Problema en red";
+
+		clienteRed  -> prioridad = 0;
+		clienteRed -> solicitud = false;
+
+	//Lista trabajadores
+	/*Técnicos*/
+	struct trabajador *tecnico_1;
+	tecnico_1 -> id = (char *) malloc (10  * sizeof(char));
+	tecnico_1 -> id = "tecnico_1";
+
+	tecnico_1 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	
+	tecnico_1 -> tipo = (char *) malloc (8 * sizeof(char));
+	tecnico_1 -> tipo = "Tecnico";
+
+	tecnico_1 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+
+	struct trabajador *tecnico_2;
+	tecnico_2 -> id = (char *) malloc (10  * sizeof(char));
+	tecnico_2 -> id = "tecnico_2";
+
+	tecnico_2 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	
+	tecnico_2 -> tipo = (char *) malloc (8 * sizeof(char));
+	tecnico_2 -> tipo = "Tecnico";
+
+	tecnico_2 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+
+	/*Responsables de reparaciones*/
+	struct trabajador *responsable_1;
+	responsable_1 -> id = (char *) malloc (14  * sizeof(char));
+	responsable_1 -> id = "responsable_1";
+
+	responsable_1 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	
+	responsable_1 -> tipo = (char *) malloc (20 * sizeof(char));
+	responsable_1 -> tipo = "Resp. Reparaciones";
+
+	responsable_1 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+
+	struct trabajador *responsable_2;
+	responsable_2 -> id = (char *) malloc (14  * sizeof(char));
+	responsable_2 -> id = "responsable_2";
+
+	responsable_2 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	
+	responsable_2 -> tipo = (char *) malloc (20 * sizeof(char));
+	responsable_2 -> tipo = "Resp. Reparaciones";
+
+	responsable_2 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+
+	/*Encargado*/
+	struct trabajador *encargado_;
+	encargado_ -> id = (char *) malloc (10 * sizeof(char));
+	encargado_ -> id = "encargado";
+
+	encargado_ -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+
+	encargado_ -> tipo = (char *) malloc (10 * sizeof(char));
+	encargado_ -> tipo = "Encargado";
+
+	encargado_ -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	//Fichero de log
 	logFile = fopen("resgistroTiempos.log", "wt"); //Comprobar si wt es la opcion correcta
@@ -225,11 +310,12 @@ int main(int argc, char* argv[]) {
 	//Variables condicion
 
 	/* CREACIÓN DE HILOS DE TECNICOS, RESPONSABLES, ENCARGADO Y ATENCION DOMICILIARIA */
-	pthread_create(&tecnico1, NULL, accionesTecnico, (void *)/*estructura en cuestión*/);
-	pthread_create(&tecnico2, NULL, accionesTecnico, (void *)/*estructura en cuestión*/);
-	pthread_create(&responsable1, NULL, accionesTecnico, (void *)/*estructura en cuestión*/);
-	pthread_create(&responsable2, NULL, accionesTecnico, (void *)/*estructura en cuestión*/);
-	pthread_create(&encargado, NULL, accionesEncargado, (void *)/*estructura en cuestión*/);
+	//Se pasa como argumento la estructura del trabajador que ejecuta el hilo
+	pthread_create(&tecnico1, NULL, accionesTecnico, (void *) tecnico_1);
+	pthread_create(&tecnico2, NULL, accionesTecnico, (void *) tecnico_2);
+	pthread_create(&responsable1, NULL, accionesTecnico, (void *) responsable_1);
+	pthread_create(&responsable2, NULL, accionesTecnico, (void *) responsable_2);
+	pthread_create(&encargado, NULL, accionesEncargado, (void *) encargado_);
 	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, (void *)/*estructura en cuestión*/);
 
 	/* ESPERAR POR SEÑALES INFINITAMENTE */
