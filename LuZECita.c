@@ -5,7 +5,6 @@
 #include <sys/wait.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-#include <stdbool.h>
 #include <string.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -45,7 +44,7 @@ struct cliente{
 	int atendido;	//0 no atendido, 1 está siendo atendido, 2 ha sido atendido
 	char *tipo;
 	int prioridad;//Array de hilo-cliente
-	bool solicitud;
+	int solicitud;	//0 no solicitud, 1 solicita atención domiciliaria
 };
 
 //estructura que guarda la informacion del trabajador
@@ -227,7 +226,7 @@ int main(int argc, char* argv[]) {
 		clienteApp -> tipo = "Aplicacion";
 
 		clienteApp -> prioridad = 0;
-		clienteApp -> solicitud = false;
+		clienteApp -> solicitud = 0;
 
 	struct cliente *clienteRed ;
 		clienteRed  -> id = (char *) malloc (12 * sizeof(char));
@@ -239,7 +238,7 @@ int main(int argc, char* argv[]) {
 		clienteRed  -> tipo = "Problema en red";
 
 		clienteRed  -> prioridad = 0;
-		clienteRed -> solicitud = false;
+		clienteRed -> solicitud = 0;
 
 	//Lista trabajadores
 	/*Técnicos*/
@@ -316,7 +315,7 @@ int main(int argc, char* argv[]) {
 	pthread_create(&responsable1, NULL, accionesTecnico, (void *) responsable_1);
 	pthread_create(&responsable2, NULL, accionesTecnico, (void *) responsable_2);
 	pthread_create(&encargado, NULL, accionesEncargado, (void *) encargado_);
-	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, (void *)/*argumentos necesarios para la función, ningún trabajador en particular*/);
+	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, (void *)/*argumentos necesarios para la ejecución del hilo, ningún trabajador en particular*/);
 
 	/* ESPERAR POR SEÑALES INFINITAMENTE */
 	while(1) {
