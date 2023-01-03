@@ -42,8 +42,8 @@ struct cliente *arrayClientesSolicitudes; //Clientes a los que tiene que visitar
 struct cliente{
 	char *id;		//no seria mejor poner el id como int? NO PORQUE EL IDENTIFICADOR ES CLIAPP_1
 	int atendido;	//0 no atendido, 1 está siendo atendido, 2 ha sido atendido
-	char *tipo;
-	int prioridad;//Array de hilo-cliente
+	char *tipo;		//app o red
+	int prioridad;	//Array de hilo-cliente
 	int solicitud;	//0 no solicitud, 1 solicita atención domiciliaria
 };
 
@@ -90,6 +90,50 @@ FILE *logFile;
 //}
 
 /*****************************************	ESPACIO PARA ESCRIBIR LAS FUNCIONES, MANEJADORES, ETC  ***********************************************/
+
+void crearNuevoCliente(int signum){
+	pthread_mutex_lock(&semaforoColaClientes);
+
+	if(nClientes<MAX_CLIENTES){
+		struct cliente nuevoCliente;
+		nClientes++;
+		char numeroId[3];
+		printf("Hay un nuevo cliente");
+		sprintf(numeroId, "%d", nClientes);
+		nuevoCliente.id=strcat("cliente_", numeroId);
+		
+		//Vemos si el cliente es de la app o red
+		switch(signum){
+			case SIGUSR1:
+			if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){
+				perror("Error en signal");
+				exit(-1);
+			}
+			nuevoCliente.tipo="App";	//cliente de la app
+			nClientesApp++;
+			break;
+
+			case SIGUSR2:
+			if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){
+				perror("Error en signal");
+				exit(-1);
+			}
+			nuevoCliente.tipo="Red";	//cliente de red
+			nClientesRed++;
+			break;
+		}
+		nuevoCliente.atendido=0;
+
+		arrayClientes[nClientes-1]=nuevoCliente;
+		pthread_t hiloClientes;
+		arrayHilosClientes[nClientes-1]=hiloClientes;
+		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)(nClientes-1));
+		pthread_mutex_unlock(&semaforoColaClientes);
+	}else{
+		pthread_mutex_unlock(&semaforoColaClientes);
+		return;
+	}
+}
 
 //¿Esto es la función "accionesTecnico" que ejecutan los hilos de tecnicos?  
 /*funcion del técnico (CUIDADO) es decir atender a los clientes con problemas en la app*/
