@@ -98,7 +98,7 @@ void crearNuevoCliente(int signum){
 		struct cliente nuevoCliente;
 		nClientes++;
 		char numeroId[3];
-		printf("Hay un nuevo cliente");
+		printf("Hay un nuevo cliente\n");
 		sprintf(numeroId, "%d", nClientes);
 		nuevoCliente.id=strcat("cliente_", numeroId);
 		
@@ -131,44 +131,48 @@ void crearNuevoCliente(int signum){
 		pthread_mutex_unlock(&semaforoColaClientes);
 	}else{
 		pthread_mutex_unlock(&semaforoColaClientes);
+		printf("No se ha podido atender al cliente\n");
 		return;
 	}
 }
 
 //¿Esto es la función "accionesTecnico" que ejecutan los hilos de tecnicos?  
 /*funcion del técnico (CUIDADO) es decir atender a los clientes con problemas en la app*/
-void atender_cliente_app(){
+void atenderClienteApp(){
 	//IMPORTANTE:::::AÑADIR LO DE LA PRIORIDAD
 	//Se comprueba si el tenico esta libre
-	if(tecnico_1.libre==0){
+	struct cliente cliente;
+	struct trabajador trabajador;
+
+	if(tecnico1.libre==0){
 		printf("Se va a atender a un cliente con problemas en la app\n");
 		printf("Bienvenido cliente, le esta atendiendo el tecnico 1\n");
 		tecnico1.libre=1;
 		//Compruebo que el cliente que atiendo sea de app
-		if(cliente.tipo==a){
+		if(cliente.tipo==App){
 			printf("El cliente ha sido atendido\n");
 			//Cambio su estado a atendido
 			cliente.atendido=1;
-			++tecnico_1.clientesAtendidos;
+			++tecnico1.clientesAtendidos;
 			//Si hay 5 descanso 5 seg
-			if(tecnico_1.clientesAtendidos==5){
-				tecnico_1.libre=1;
+			if(tecnico1.clientesAtendidos==5){
+				tecnico1.libre=1;
 				sleep(5);
 			}
 		}
-	}else if (tecnico_2.libre==0){
+	}else if (tecnico2.libre==0){
 		printf("Se va a atender a un cliente con problemas en la app\n");
 		printf("Bienvenido cliente, le esta atendiendo el tecnico 2\n");
 		tecnico2.libre=1;
 		//Compruebo que el cliente que atiendo sea de app
-		if(cliente.tipo==a){
+		if(cliente.tipo==App){
 			printf("El cliente ha sido atendido\n");
 			//Cambio su estado a atendido
 			cliente.atendido=1;
-			++tecnico_2.clientesAtendidos;
+			++tecnico2.clientesAtendidos;
 			//Si hay 5 descanso 5 seg
-			if(tecnico_2.clientesAtendidos==5){
-				tecnico_2.libre=1;
+			if(tecnico2.clientesAtendidos==5){
+				tecnico2.libre=1;
 				sleep(5);
 			}
 		}
@@ -224,7 +228,7 @@ int main(int argc, char* argv[]) {
 	pthread_t tecnico1, tecnico2, responsable1, responsable2, encargado, atencionDomiciliaria;
 
 	arrayHilosClientes = (pthread_t *) malloc (nClientes * sizeOf(struct cliente *)); //Array dinámico de hilos de clientes
-	arrayClientes = (struct cliente *) malloc (nCliente * sizeOf(struct cliente *)); //array del total de clientes
+	arrayClientes = (struct cliente *) malloc (nClientes * sizeOf(struct cliente *)); //array del total de clientes
 	arrayClientesSolicitudes = (struct cliente *) malloc (4 * sizeOf(struct cliente *)); // array de clientes con solicitudes (4 para que salga el responsable)
 	
 	/*Mostramos por pantalla el PID del programa para enviar las señales*/
