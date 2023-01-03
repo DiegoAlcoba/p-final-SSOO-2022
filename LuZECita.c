@@ -58,39 +58,40 @@ struct trabajador{
 /*Fichero de log*/
 FILE *logFile;
 
-/************************************************************************************/
-//funcion para crear un tecnico
-Trabajador generar_Tecnico(){
-	//Tecnico 1
-		static int id1=0;
-		Trabajador tecnico_1;
-		tecnico_1.id=++id1;
-		tecnico_1.clientesAtendidos=0;
-		tecnico_1.tipo=T;
-		tecnico_1.libre=0;
-	//Tecnico 2
-		static int id2=0;
-		Trabajador tecnico_2;
-		tecnico_2.id=++id2;	
-		tecnico_2.clientesAtendidos=0;
-		tecnico_2.tipo=T;
-		tecnico_2.libre=0;
-}
+////funcion para crear un tecnico
+//Trabajador generar_Tecnico(){
+//	//Tecnico 1
+//		static int id1=0;
+//		Trabajador tecnico_1;
+//		tecnico_1.id=++id1;
+//		tecnico_1.clientesAtendidos=0;
+//		tecnico_1.tipo=T;
+//		tecnico_1.libre=0;
+//	//Tecnico 2
+//		static int id2=0;
+//		Trabajador tecnico_2;
+//		tecnico_2.id=++id2;	
+//		tecnico_2.clientesAtendidos=0;
+//		tecnico_2.tipo=T;
+//		tecnico_2.libre=0;
+//}
+//
+////funcion para generar un cliente
+//Cliente generar_cliente(){
+//	static int id = 0;
+//	Cliente c;
+//	c.id = ++id;
+//	c.atendido = 0;//0 si no esta atendido, 1 si si lo esta
+//
+//	//genera un tipo de cliente aleatoriamente(para un cliente de app usaremos a, para uno de red usaremos r)
+//	c.tipo = rand()%2==0 ? 'a' : 'r';
+//
+//	return c;
+//}
 
-//funcion para generar un cliente
-Cliente generar_cliente(){
-	static int id = 0;
-	Cliente c;
-	c.id = ++id;
-	c.atendido = 0;//0 si no esta atendido, 1 si si lo esta
+/*****************************************	ESPACIO PARA ESCRIBIR LAS FUNCIONES, MANEJADORES, ETC  ***********************************************/
 
-	//genera un tipo de cliente aleatoriamente(para un cliente de app usaremos a, para uno de red usaremos r)
-	c.tipo = rand()%2==0 ? 'a' : 'r';
-
-	return c;
-}
-/************************************************************************************/
-
+//¿Esto es la función "accionesTecnico" que ejecutan los hilos de tecnicos?  
 /*funcion del técnico (CUIDADO) es decir atender a los clientes con problemas en la app*/
 void atender_cliente_app(){
 	//IMPORTANTE:::::AÑADIR LO DE LA PRIORIDAD
@@ -131,6 +132,9 @@ void atender_cliente_app(){
 		printf("Ningun tecnico esta libre en este momento\n");
 	}
 }
+
+/*************************************************************************************************************************************************/
+
 /*Función que calcula números aleatorios*/
 int calculaAleatorios(int min, int max) {
 	srand(time(NULL));
@@ -147,18 +151,18 @@ void writeLogMessage(char *id, char *msg) {
 	strftime(stnow, 25, "%d/%m/%y  %H:%M:%S", tlocal);
 
 	//Escribimos en el log
-	logFile = fopen(logFileName, "a");
+	logFile = fopen("resgistroTiempos.log", "a");
 	fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
 	fclose(logFile);
 }
 
 //IMPORTANTE::::::AÑADIR CONDICION DE QUE SI ESTAN LOS DOS OCUPADOS ATENDERLOS ENCARGADO
 
-//funcion para atender a un cliente
-void atender_cliente(){
-	printf("Se esta atendiendo al cliente %d (%c)\n, c.id, c.tipo");
-	sleep(1);	//se simula el tiempo de atencion
-}
+//funcion para atender a un cliente ............. Los clientes son atendidos en las funciones que ejecutan los hilos (accionesTecnico, accionesEncargado, accionesTecnicoDomiciliario)
+//void atender_cliente(){
+//	printf("Se esta atendiendo al cliente %d (%c)\n, c.id, c.tipo");
+//	sleep(1);	//se simula el tiempo de atencion
+//}
 
 /*Función que finaliza el programa al recibir la señal*/
 void finalizarPrograma (int signal) {
@@ -300,11 +304,11 @@ int main(int argc, char* argv[]) {
 	encargado_ -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	//Fichero de log
-	logFile = fopen("resgistroTiempos.log", "wt"); //Comprobar si wt es la opcion correcta
+	logFile = fopen("resgistroTiempos.log", "wt"); //Opcion "wt" = Cada vez que se ejecuta el programa, si el archivo ya existe se elimina su contenido para empezar de cero
 	fclose(logFile);
 
 	//Variables relativas a la solicitud de atención domiciliaria
-	int nSolicitudesDomiciliarias = 0; //Imagino que este también hace falta, anque puede que con el array sea suficiente
+	int nSolicitudesDomiciliarias = 0; //Contador para las solicitudes, cuando sea 4 se envía atención domiciliaria
 
 	//Variables condicion
 
