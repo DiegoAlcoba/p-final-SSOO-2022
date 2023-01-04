@@ -20,6 +20,9 @@
 #define NUM_RESPONSABLES 2
 #define NUM_ENCARGADOS 1
 
+/*Mensajes de log*/
+char *entrada = "Hora de entrada al sistema";
+
 /*Variables globales*/
 pthread_mutex_t semaforoFichero;
 pthread_mutex_t semaforoColaClientes;
@@ -117,6 +120,20 @@ void crearNuevoCliente(int signum){
 	}
 }
 
+void accionesCliente (void* nuevoCliente) {
+	//pthread_mutex_t semaforoFichero;
+	//pthread_mutex_t semaforoColaClientes;
+	//pthread_mutex_t semaforoSolicitudes;
+	
+	//Guardar en log la hora y tipo de cliente
+	pthread_mutex_lock(&semaforoFichero);
+	writeLogMessage(nuevoCliente.id, entrada); //Escribe el id del cliente y el char "entrada" (variable global)
+	pthread_mutex_unlock(&semaforoFichero);
+
+
+
+}
+
 //¿Esto es la función "accionesTecnico" que ejecutan los hilos de tecnicos?  
 /*funcion del técnico (CUIDADO) es decir atender a los clientes con problemas en la app*/
 void atenderClienteApp(){
@@ -180,7 +197,7 @@ void writeLogMessage(char *id, char *msg) {
 	strftime(stnow, 25, "%d/%m/%y  %H:%M:%S", tlocal);
 
 	//Escribimos en el log
-	logFile = fopen("resgistroTiempos.log", "a");
+	logFile = fopen("registroTiempos.log", "a");
 	fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
 	fclose(logFile);
 }
@@ -333,7 +350,7 @@ int main(int argc, char* argv[]) {
 	encargado_ -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	//Fichero de log
-	logFile = fopen("resgistroTiempos.log", "wt"); //Opcion "wt" = Cada vez que se ejecuta el programa, si el archivo ya existe se elimina su contenido para empezar de cero
+	logFile = fopen("registroTiempos.log", "wt"); //Opcion "wt" = Cada vez que se ejecuta el programa, si el archivo ya existe se elimina su contenido para empezar de cero
 	fclose(logFile);
 
 	//Variables relativas a la solicitud de atención domiciliaria
