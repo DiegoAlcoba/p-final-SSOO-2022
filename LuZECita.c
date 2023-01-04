@@ -67,13 +67,13 @@ FILE *logFile;
 /*Crea un nuevo cliente cuando recibe una de las dos señales definidas para ello*/
 void crearNuevoCliente(int signum){
 
-	pthread_mutex_lock(&semaforoColaClientes);
+	pthread_mutex_lock(&semaforoColaClientes);		//el hilo adquiere el bloqueo del mutex y puede acceder a la cola de clientes
 
 	if(nClientes<MAX_CLIENTES){
-		struct cliente nuevoCliente;
-		nClientes++;
+		struct cliente nuevoCliente;		//creamos la variable nuevoCliente para guarda informacion en el struct
+		nClientes++;	//aumentamos el contador de clientes totales
 
-		char numeroId[2];
+		char numeroId[2];		//creamos numeroId
 		printf("Hay un nuevo cliente\n");
 		
 		//Esto dentro de cada case, incrementando el nClientes[red/app]
@@ -83,38 +83,41 @@ void crearNuevoCliente(int signum){
 		//Vemos si el cliente es de la app o red
 		switch(signum){
 			case SIGUSR1:
-				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){
+				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){		//SIGUSR1 se está configurando para que sea manejada por la función crearNuevoCliente() y comprobamos si signal() ha devuelto el valor SIG_ERR, lo que produce un error
 					perror("Error en signal");
 					exit(-1);
 				}
 			
 				nuevoCliente.tipo="App";	//cliente de la app
-				nClientesApp++;
+				nClientesApp++;				//aumentamos el contador de clientes de app
+				nuevoCliente.solicitud=0;	//ponemos la solicitud del cliente en 0
+				nuevoCliente.prioridad=calculaAleatorios;	//damos un numero de prioridad aleatorio al cliente
 				
 				break;
 
 			case SIGUSR2:
-				if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){
+				if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){		//SIGUSR2 se está configurando para que sea manejada por la función crearNuevoCliente() y comprobamos si signal() ha devuelto el valor SIG_ERR, lo que produce un error
 					perror("Error en signal");
 					exit(-1);
 				}
 
 				nuevoCliente.tipo="Red";	//cliente de red
-				nClientesRed++;
+				nClientesRed++;		//aumentamos el contador de clientes de red
+				nuevoCliente.prioridad=calculaAleatorios;
 
 				break;
 		}
 
-		nuevoCliente.atendido=0;
+		nuevoCliente.atendido=0;		//indicamos el valor 0 a nuevoCliente.atendido para indicar que todavia no ha sido atendido
 
-		arrayClientes[nClientes-1]=nuevoCliente;
+		arrayClientes[nClientes-1]=nuevoCliente;		//asigna la estructura nuevoCliente al ultimo elemento de arrayClientes
 
-		pthread_t hiloClientes;
-		arrayHilosClientes[nClientes-1]=hiloClientes;
+		pthread_t hiloClientes;		//hiloClientes es una variable de tipo pthread_t que se ha declarado para almacenar el identificador de un hilo específico
+		arrayHilosClientes[nClientes-1]=hiloClientes;		//asigna la estructura hiloClientes al ultimo elemento de arrayHilosClientes
 
-		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)(nClientes-1));
+		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)(nClientes-1));		//pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada. El hilo se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
 
-		pthread_mutex_unlock(&semaforoColaClientes);
+		pthread_mutex_unlock(&semaforoColaClientes);		//libera el hilo del mutex y permite a otros otros hilos poder entrar en la cola de cliente y asi en la seccion critica
 	}else{
 		pthread_mutex_unlock(&semaforoColaClientes);
 		printf("No se ha podido atender al cliente\n");
