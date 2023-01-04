@@ -21,7 +21,10 @@
 #define NUM_ENCARGADOS 1
 
 /*Mensajes de log*/
-char *entrada = "Hora de entrada al sistema";
+char *entrada = "Hora de entrada al sistema.";
+char *appDificil = "El cliente se ha ido porque encuentra la aplicación difícil.";
+char *muchaEspera = "El cliente se ha ido porque se ha cansado de esperar.";
+char *noInternet = "El cliente se ha ido porque ha perdido la conexión a internet.";
 
 /*Variables globales*/
 pthread_mutex_t semaforoFichero;
@@ -121,17 +124,60 @@ void crearNuevoCliente(int signum){
 }
 
 void accionesCliente (void* nuevoCliente) {
-	//pthread_mutex_t semaforoFichero;
-	//pthread_mutex_t semaforoColaClientes;
-	//pthread_mutex_t semaforoSolicitudes;
-	
-	//Guardar en log la hora y tipo de cliente
+	//Guardar en log la hora y tipo de cliente (se deduce del id)
 	pthread_mutex_lock(&semaforoFichero);
 	writeLogMessage(nuevoCliente.id, entrada); //Escribe el id del cliente y el char "entrada" (variable global)
 	pthread_mutex_unlock(&semaforoFichero);
 
+	//Comprobar si el cliente está atendido
+	pthread_mutex_lock(&semaforoColaClientes);
+	
+	nuevoCliente.atendido = calculaAleatorios(0, 2);
+
+	do {
+		int comportamiento = calculaAleatorios(1, 100);
+
+		if (comportamiento <= 10) { //Un 10% encuentra la app dificil y se va
+			clienteFuera(nuevoCliente.id, appDificil); //Se escribe en el log
+			
+			pthread_mutex_unlock(&semaforoColaClientes); //Se libera el mutex antes de finalizar el hilo
+			pthread_exit(NULL); //Se finaliza el hilo cliente
+
+			//Liberar espacio en la cola de clientes
+			//función liberaEspacioClientes()??
+
+		}
+		else if (comportamiento > 10 && comportamiento <= 30) { //Un 20% se cansa de esperar
+			clienteFuera(nuevoCliente.id, muchaEspera);
+
+			pthread_mutex_unlock(&semaforoColaClientes);
+			pthread_exit(NULL);
+
+			//Liberar espacio en la cola de clientes
+		}
+		else if (comportamiento > 30 && comportamiento <= 35) { //Un 5% del restante pierde la conexión a internet
+			clienteFuera(nuevoCliente.id, noInternet);
+
+			pthread_mutex_unlock(&semaforoColaClientes);
+			pthread_exit(NULL);
+
+			//Liberar espacio en la cola de clientes (Antes o después dek unlock & exit??)
+		}
+		else {//Si comportamiento > 35 duerme 2 segs y vuelve a comenzar
+			sleep(2);
+		}
+
+	} while (nuevoCliente.atendido == 0);
 
 
+
+}
+
+/*Función que escribe en el log cuando un cliente se va antes de ser atendido*/
+void clienteFuera(char *id, char *razon) {
+	pthread_mutex_lock(&semaforoFichero);
+	writeLogMessage(id, razon); //Escribe el id del cliente y el char "appDificil" 
+	pthread_mutex_unlock(&semaforoFichero);
 }
 
 //¿Esto es la función "accionesTecnico" que ejecutan los hilos de tecnicos?  
@@ -204,7 +250,6 @@ void writeLogMessage(char *id, char *msg) {
 
 //IMPORTANTE::::::AÑADIR CONDICION DE QUE SI ESTAN LOS DOS OCUPADOS ATENDERLOS ENCARGADO
 
-//funcion para atender a un cliente ............. Los clientes son atendidos en las funciones que ejecutan los hilos (accionesTecnico, accionesEncargado, accionesTecnicoDomiciliario)
 //void atender_cliente(){
 //	printf("Se esta atendiendo al cliente %d (%c)\n, c.id, c.tipo");
 //	sleep(1);	//se simula el tiempo de atencion
@@ -357,6 +402,7 @@ int main(int argc, char* argv[]) {
 	int nSolicitudesDomiciliarias = 0; //Contador para las solicitudes, cuando sea 4 se envía atención domiciliaria
 
 	//Variables condicion
+	//*** MUY IMPORTANTE *** -> Esto creo que es un array condicion similar al de la práctica 8
 
 	/* CREACIÓN DE HILOS DE TECNICOS, RESPONSABLES, ENCARGADO Y ATENCION DOMICILIARIA */
 	//Se pasa como argumento la estructura del trabajador que ejecuta el hilo
@@ -371,6 +417,9 @@ int main(int argc, char* argv[]) {
 	while(1) {
 		pause();
 	}
+
+	//pthread_join(); no sé si es necesario, queda por si acaso
+	//pthread_mutex_destroy(); no creo que sea necesario pero queda aquí por si acaso da un problema de memoria o algo
 
 	/* LIBERACIÓN DE MEMORIA */
 	free(arrayHilosClientes);
