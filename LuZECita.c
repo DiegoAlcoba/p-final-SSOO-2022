@@ -58,80 +58,61 @@ struct trabajador{
 /*Fichero de log*/
 FILE *logFile;
 
-////funcion para crear un tecnico
-//Trabajador generar_Tecnico(){
-//	//Tecnico 1
-//		static int id1=0;
-//		Trabajador tecnico_1;
-//		tecnico_1.id=++id1;
-//		tecnico_1.clientesAtendidos=0;
-//		tecnico_1.tipo=T;
-//		tecnico_1.libre=0;
-//	//Tecnico 2
-//		static int id2=0;
-//		Trabajador tecnico_2;
-//		tecnico_2.id=++id2;	
-//		tecnico_2.clientesAtendidos=0;
-//		tecnico_2.tipo=T;
-//		tecnico_2.libre=0;
-//}
-//
-////funcion para generar un cliente
-//Cliente generar_cliente(){
-//	static int id = 0;
-//	Cliente c;
-//	c.id = ++id;
-//	c.atendido = 0;//0 si no esta atendido, 1 si si lo esta
-//
-//	//genera un tipo de cliente aleatoriamente(para un cliente de app usaremos a, para uno de red usaremos r)
-//	c.tipo = rand()%2==0 ? 'a' : 'r';
-//
-//	return c;
-//}
-
-/*****************************************	ESPACIO PARA ESCRIBIR LAS FUNCIONES, MANEJADORES, ETC  ***********************************************/
-
+/*Crea un nuevo cliente cuando recibe una de las dos señales definidas para ello*/
 void crearNuevoCliente(int signum){
+
 	pthread_mutex_lock(&semaforoColaClientes);
 
 	if(nClientes<MAX_CLIENTES){
 		struct cliente nuevoCliente;
 		nClientes++;
-		char numeroId[3];
+
+		char numeroId[2];
 		printf("Hay un nuevo cliente\n");
-		sprintf(numeroId, "%d", nClientes);
+		
+		//Esto dentro de cada case, incrementando el nClientes[red/app]
+		sprintf(numeroId, "%d", nClientes); //nClientesApp o nClientesRed dependiendo de la señal
 		nuevoCliente.id=strcat("cliente_", numeroId);
 		
 		//Vemos si el cliente es de la app o red
 		switch(signum){
 			case SIGUSR1:
-			if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){
-				perror("Error en signal");
-				exit(-1);
-			}
-			nuevoCliente.tipo="App";	//cliente de la app
-			nClientesApp++;
-			break;
+				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){
+					perror("Error en signal");
+					exit(-1);
+				}
+			
+				nuevoCliente.tipo="App";	//cliente de la app
+				nClientesApp++;
+				
+				break;
 
 			case SIGUSR2:
-			if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){
-				perror("Error en signal");
-				exit(-1);
-			}
-			nuevoCliente.tipo="Red";	//cliente de red
-			nClientesRed++;
-			break;
+				if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){
+					perror("Error en signal");
+					exit(-1);
+				}
+
+				nuevoCliente.tipo="Red";	//cliente de red
+				nClientesRed++;
+
+				break;
 		}
+
 		nuevoCliente.atendido=0;
 
 		arrayClientes[nClientes-1]=nuevoCliente;
+
 		pthread_t hiloClientes;
 		arrayHilosClientes[nClientes-1]=hiloClientes;
+
 		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)(nClientes-1));
+
 		pthread_mutex_unlock(&semaforoColaClientes);
 	}else{
 		pthread_mutex_unlock(&semaforoColaClientes);
 		printf("No se ha podido atender al cliente\n");
+
 		return;
 	}
 }
@@ -236,14 +217,14 @@ int main(int argc, char* argv[]) {
 
 	/* SEÑALES */
 	//Cliente App
-	if (signal(SIGUSR1, nuevoCliente) == SIG_ERR) {
+	if (signal(SIGUSR1, crearNuevoCliente) == SIG_ERR) {
 		perror("Error en la señal");
 
 		exit(-1);
 	}
 
 	//Cliente Red
-	if (signal(SIGUSR2, nuevoCliente) == SIG_ERR) {
+	if (signal(SIGUSR2, crearNuevoCliente) == SIG_ERR) {
 		perror("Error en la señal");
 
 		exit(-1);
