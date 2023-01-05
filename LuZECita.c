@@ -25,6 +25,8 @@ char *entrada = "Hora de entrada al sistema.";
 char *appDificil = "El cliente se ha ido porque encuentra la aplicación difícil.";
 char *muchaEspera = "El cliente se ha ido porque se ha cansado de esperar.";
 char *noInternet = "El cliente se ha ido porque ha perdido la conexión a internet.";
+char *esperaAtencion = "El cliente espera por la atención domiciliaria";
+char *atencionFinaliza = "La atención domiciliaria ha finalizado";
 
 /*Variables globales*/
 pthread_mutex_t semaforoFichero;
@@ -83,7 +85,7 @@ void crearNuevoCliente(int signum){
 		//Vemos si el cliente es de la app o red
 		switch(signum){
 			case SIGUSR1:
-				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){		//SIGUSR1 se está configurando para que sea manejada por la función crearNuevoCliente() y comprobamos si signal() ha devuelto el valor SIG_ERR, lo que produce un error
+				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){
 					perror("Error en signal");
 					exit(-1);
 				}
@@ -96,7 +98,7 @@ void crearNuevoCliente(int signum){
 				break;
 
 			case SIGUSR2:
-				if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){		//SIGUSR2 se está configurando para que sea manejada por la función crearNuevoCliente() y comprobamos si signal() ha devuelto el valor SIG_ERR, lo que produce un error
+				if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){
 					perror("Error en signal");
 					exit(-1);
 				}
@@ -127,60 +129,118 @@ void crearNuevoCliente(int signum){
 }
 
 void accionesCliente (void* nuevoCliente) {
-	//Guardar en log la hora y tipo de cliente (se deduce del id)
+	//Guardar en log la hora de entrada al sistema y tipo de cliente
 	pthread_mutex_lock(&semaforoFichero);
 	writeLogMessage(nuevoCliente.id, entrada); //Escribe el id del cliente y el char "entrada" (variable global)
+	writeLogMessage(nuevoCliente.id, nuevoCliente.tipo); //Escribe el id y tipo del cliente
 	pthread_mutex_unlock(&semaforoFichero);
 
 	//Comprobar si el cliente está atendido
 	pthread_mutex_lock(&semaforoColaClientes);
-	
-	nuevoCliente.atendido = calculaAleatorios(0, 2);
 
 	do {
 		int comportamiento = calculaAleatorios(1, 100);
 
 		if (comportamiento <= 10) { //Un 10% encuentra la app dificil y se va
 			clienteFuera(nuevoCliente.id, appDificil); //Se escribe en el log
-			
-			pthread_mutex_unlock(&semaforoColaClientes); //Se libera el mutex antes de finalizar el hilo
-			pthread_exit(NULL); //Se finaliza el hilo cliente
 
 			//Liberar espacio en la cola de clientes
-			//función liberaEspacioClientes()??
+			liberaEspacioClientes(nuevoCliente.tipo); //Funcíón que resta un cliente de nClientes y nClientes(tipo) cuando este se va
 
+			/************** IMPORTANTE FALTA ESTO ***************/
+			//:::::::::Liberar un hueco en el array de clientes
+				
+			pthread_mutex_unlock(&semaforoColaClientes); //Se libera el mutex antes de finalizar el hilo
+			pthread_exit(NULL); //Se finaliza el hilo cliente
 		}
 		else if (comportamiento > 10 && comportamiento <= 30) { //Un 20% se cansa de esperar
 			clienteFuera(nuevoCliente.id, muchaEspera);
 
+			//Liberar espacio en la cola de clientes
+			liberaEspacioClientes(nuevoCliente.tipo); //Funcíón que resta un cliente de nClientes y nClientes(tipo) cuando este se va
+
+			/************** IMPORTANTE FALTA ESTO ***************/
+			//:::::::::Liberar un hueco en el array de clientes
+
 			pthread_mutex_unlock(&semaforoColaClientes);
 			pthread_exit(NULL);
-
-			//Liberar espacio en la cola de clientes
 		}
 		else if (comportamiento > 30 && comportamiento <= 35) { //Un 5% del restante pierde la conexión a internet
 			clienteFuera(nuevoCliente.id, noInternet);
 
+			//Liberar espacio en la cola de clientes (Antes o después dek unlock & exit??)
+			liberaEspacioClientes(nuevoCliente.tipo);
+
+			/************** IMPORTANTE FALTA ESTO ***************/
+			//:::::Liberar un hueco en el array de clientes
+
 			pthread_mutex_unlock(&semaforoColaClientes);
 			pthread_exit(NULL);
-
-			//Liberar espacio en la cola de clientes (Antes o después dek unlock & exit??)
 		}
-		else {//Si comportamiento > 35 duerme 2 segs y vuelve a comenzar
+		else {//Si se queda duerme 2 segundos y vuelve a comprobar si se va o se queda
 			sleep(2);
+			//::::::::::::Hay que comprobar si se cansa de esperar cada 8 segundos ¿como?
+
+			if (nuevoCliente.atendido == 1) { //El cliente está siendo atendido
+				//Esperar a que termine de atenderle el cliente
+				//::::::::::: Imagino que depende de otra función
+
+				if (nuevoCliente.tipo == "Red" && /*Solicita atención domiciliaria -- iamgino que la solicita mientras le atienden*/) {
+					//pthread_mutex_lock(&semaforoSolicitudes) con variables condición, ahora mismo no lo hago
+
+					do {
+						if (nSolicitudesDomiciliarias < 4) {
+							nSolicitudesDomiciliarias++; //Se incrementan las solicitutes si hasta ahora eran < 4
+							
+							//Se escribe en el log que el cliente quiere atención
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(nuevoCliente.id, esperaAtencion);
+							pthread_mutex_unlock(&semaforoFichero);
+
+							//Se cambia el valor de solicitud a 1
+							pthread_mutex_lock(&semaforoColaClientes);
+							nuevoCliente.solicitud = 1;
+							pthread_mutex_unlock(&semaforoColaClientes);
+
+							/*
+							5.III y 5.IV (No tengo ganas de hacerlo ahora)
+							*/
+
+							//pthread_mutex_unlock(&semaforoSolicitudes) con variables condición, ahora mismo no lo hago
+
+							//Se escribe en el log que la atencion ha finalizado
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(nuevoCliente.id, atencionFinaliza);
+							pthread_mutex_unlock(&semaforoFichero);
+						}
+						else {
+							sleep(3);
+						}
+					
+					} while (nSolicitudesDomiciliarias = 4)
+
+				}
+			}
+			//Libera posición en la cola, se va, escribe en el log y fin de hilo (ptos. 6, 7 y 8)
 		}
 
 	} while (nuevoCliente.atendido == 0);
-
-
-
-}
+} 
 
 /*Función que escribe en el log cuando un cliente se va antes de ser atendido*/
 void clienteFuera(char *id, char *razon) {
 	pthread_mutex_lock(&semaforoFichero);
 	writeLogMessage(id, razon); //Escribe el id del cliente y el char "appDificil" 
 	pthread_mutex_unlock(&semaforoFichero);
+}
+
+void liberaEspacioClientes(char *tipoCliente) {
+	if (nuevoCliente.tipo == "App") {
+		nClientesApp--;	
+	} else {
+		nClientesRed--;
+	}
+	nClientes--;
 }
 
 //¿Esto es la función "accionesTecnico" que ejecutan los hilos de tecnicos?  
