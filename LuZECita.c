@@ -88,10 +88,12 @@ void crearNuevoCliente(int signum){
 			
 				sprintf(numeroId, "%d", nClientesApp);
 				nuevoCliente.id=strcat("cliapp_", numeroId);
+				nuevoCliente.atendido=0;	//0 indica que el cliente todavia no ha sido atendido
 				nuevoCliente.tipo="App";	//cliente de la app
 				nClientesApp++;				//aumentamos el contador de clientes de app
 				nuevoCliente.solicitud=0;	//ponemos la solicitud del cliente en 0
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
+				printf("El cliente es %c\n", nuevoCliente.id);
 				
 			break;
 
@@ -103,15 +105,15 @@ void crearNuevoCliente(int signum){
 
 				sprintf(numeroId, "%d", nClientesRed);
 				nuevoCliente.id=strcat("clired_", numeroId);
+				nuevoCliente.atendido=0;
 				nuevoCliente.tipo="Red";	//cliente de red
 				nClientesRed++;		//aumentamos el contador de clientes de red
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);
+				printf("El cliente es %c\n", nuevoCliente.id);
 
 			break;
 
 		}
-
-		nuevoCliente.atendido=0;		//indicamos el valor 0 a nuevoCliente.atendido para indicar que todavia no ha sido atendido
 
 		arrayClientes[nClientes-1]=nuevoCliente;		//asigna la estructura nuevoCliente al ultimo elemento de arrayClientes
 
