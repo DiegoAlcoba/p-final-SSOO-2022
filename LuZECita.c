@@ -79,10 +79,6 @@ void crearNuevoCliente(int signum){
 		char numeroId[2];		//creamos numeroId
 		printf("Hay un nuevo cliente\n");
 		
-		//Esto dentro de cada case, incrementando el nClientes[red/app]
-		sprintf(numeroId, "%d", nClientes); //nClientesApp o nClientesRed dependiendo de la señal
-		nuevoCliente.id=strcat("cliente_", numeroId);
-		
 		//Vemos si el cliente es de la app o red
 		switch(signum){
 			case SIGUSR1:
@@ -91,12 +87,16 @@ void crearNuevoCliente(int signum){
 					exit(-1);
 				}
 			
+				sprintf(numeroId, "%d", nClientesApp);
+				nuevoCliente.id=strcat("cliapp_", numeroId);
+				nuevoCliente.atendido=0;	//0 indica que el cliente todavia no ha sido atendido
 				nuevoCliente.tipo="App";	//cliente de la app
 				nClientesApp++;				//aumentamos el contador de clientes de app
 				nuevoCliente.solicitud=0;	//ponemos la solicitud del cliente en 0
-				nuevoCliente.prioridad=calculaAleatorios;	//damos un numero de prioridad aleatorio al cliente
+				nuevoCliente.prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
+				printf("El cliente es %c\n", nuevoCliente.id);
 				
-				break;
+			break;
 
 			case SIGUSR2:
 				if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){
@@ -104,14 +104,17 @@ void crearNuevoCliente(int signum){
 					exit(-1);
 				}
 
+				sprintf(numeroId, "%d", nClientesRed);
+				nuevoCliente.id=strcat("clired_", numeroId);
+				nuevoCliente.atendido=0;
 				nuevoCliente.tipo="Red";	//cliente de red
 				nClientesRed++;		//aumentamos el contador de clientes de red
-				nuevoCliente.prioridad=calculaAleatorios;
+				nuevoCliente.prioridad=calculaAleatorios(1, 10);
+				printf("El cliente es %c\n", nuevoCliente.id);
 
-				break;
+			break;
+
 		}
-
-		nuevoCliente.atendido=0;		//indicamos el valor 0 a nuevoCliente.atendido para indicar que todavia no ha sido atendido
 
 		arrayClientes[nClientes-1]=nuevoCliente;		//asigna la estructura nuevoCliente al ultimo elemento de arrayClientes
 
