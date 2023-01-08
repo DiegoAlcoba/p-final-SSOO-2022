@@ -241,24 +241,26 @@ void *accionesEncargado(void *arg){
 		for(i=0; i<nClientes; i++){
 			if(arrayClientes[i].atendido==0){ //si el cliente no ha sido atendido
 				if(strcmp(arrayClientes[i].tipo, "Red")==0){ //si es de tipo red
-					clienteAtender = i;
+					clienteAtender=i;
 					break;
-				}else if(strcmp(arrayClientes[i].tipo, "App")==0 && clienteAtender==-1){ //si es de tipo app y no se ha encontrado aún un cliente de red
-					clienteAtender = i;
 				}
+				else if(strcmp(arrayClientes[i].tipo, "App")==0 && clienteAtender==-1){ //si es de tipo app y no se ha encontrado aún un cliente de red
+					clienteAtender=i;
+				}	
 			}
 		}
 		if(clienteAtender==-1){ //si no se ha encontrado ningún cliente de tipo red o app
 			//atiende a la prioridad y sino al que más tiempo lleve esperando
-			int tiempoEspera = 0;
-			for(i = 0; i < nClientes; i++){
+			int tiempoEspera=0;
+			for(i=0; i<nClientes; i++){
 				if(arrayClientes[i].atendido==0){ //si el cliente no ha sido atendido
-					if(arrayClientes[i].prioridad > tiempoEspera){ //si tiene mayor prioridad
-						tiempoEspera = arrayClientes[i].prioridad;
-						clienteAtender = i;
-					}else if(arrayClientes[i].prioridad==tiempoEspera){ //si tiene la misma prioridad
-						if(arrayClientes[i].id > arrayClientes[clienteAtender].id){ //si lleva más tiempo esperando
-							clienteAtender = i;
+					if(arrayClientes[i].prioridad>tiempoEspera){ //si tiene mayor prioridad
+						tiempoEspera=arrayClientes[i].prioridad;
+						clienteAtender=i;
+					}
+					else if(arrayClientes[i].prioridad==tiempoEspera){ //si tiene la misma prioridad
+						if(arrayClientes[i].id>arrayClientes[clienteAtender].id){ //si lleva más tiempo esperando
+							clienteAtender=i;
 						}
 					}
 				}
@@ -267,6 +269,20 @@ void *accionesEncargado(void *arg){
 		if(clienteAtender!=-1){ //si se ha encontrado un cliente para atender
 			arrayClientes[clienteAtender].atendido=1; //marca el cliente como siendo atendido
 			pthread_mutex_unlock(&semaforoColaClientes);
+
+			//calculamos el tipo de atención y en función de esto el tiempo de atención (el 80%, 10%, 10%)
+			int tiempoAtencion;
+			if(arrayClientes[clienteAtender].solicitud==1){ //si el cliente ha solicitado atención domiciliaria
+				tiempoAtencion=(80 * rand())/RAND_MAX + 1;
+			}
+			else{ //si el cliente no ha solicitado atención domiciliaria
+  				if(strcmp(arrayClientes[clienteAtender].tipo, "App")==0){ //si es de tipo app
+    			tiempoAtencion=(10 * rand())/RAND_MAX + 1;
+  				}
+  				else{ //si es de tipo red
+    				tiempoAtencion=(20 * rand())/RAND_MAX + 1;
+  				}
+			}
 		}
 	}
 }
