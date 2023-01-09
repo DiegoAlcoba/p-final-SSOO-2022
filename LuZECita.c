@@ -73,12 +73,17 @@ struct trabajador{
 FILE *logFile;
 
 /*Crea un nuevo cliente cuando recibe una de las dos señales definidas para ello*/
-void crearNuevoCliente(int signum){
+void crearNuevoCliente(int signum, struct cliente *nuevoCliente){
+	bool espacioDisponible=false;
 
-	pthread_mutex_lock(&semaforoColaClientes);		//el hilo adquiere el bloqueo del mutex y puede acceder a la cola de clientes
-
+	pthread_mutex_lock(&semaforoColaClientes);
 	if(nClientes<MAX_CLIENTES){
-		struct cliente nuevoCliente;		//creamos la variable nuevoCliente para guarda informacion en el struct
+    	espacioDisponible=true;
+	}
+	pthread_mutex_unlock(&semaforoColaClientes);
+
+	if(espacioDisponible==true){
+		pthread_mutex_lock(&semaforoColaClientes);
 		nClientes++;	//aumentamos el contador de clientes totales
 
 		char numeroId[2];		//creamos numeroId
@@ -94,15 +99,14 @@ void crearNuevoCliente(int signum){
 			
 				nClientesApp++;				//aumentamos el contador de clientes de app
 
-				sprintf(numeroId, "%d", nClientesApp);
-				nuevoCliente.id=strcat("cliapp_", numeroId);
+				snprintf(numeroId, "%d", nClientesApp);
+				nuevoCliente->id=strdup(strcat("cliapp_", numeroId));
 				
-				//yo creo que es mejor ponerlos a 0 aqui
-				nuevoCliente.atendido=0;	//0 indica que el cliente todavia no ha sido atendido
-				nuevoCliente.tipo="App";	//cliente de la app
-				nuevoCliente.solicitud=0;	//ponemos la solicitud del cliente en 0
-				nuevoCliente.prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
-				printf("El cliente es %c\n", nuevoCliente.id);
+				nuevoCliente->atendido=0;	//0 indica que el cliente todavia no ha sido atendido
+				nuevoCliente->tipo=strdup("App");	//cliente de la app
+				nuevoCliente->solicitud=0;	//ponemos la solicitud del cliente en 0
+				nuevoCliente->prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
+				printf("El cliente es %s\n", nuevoCliente->id);
 				
 			break;
 
@@ -113,32 +117,25 @@ void crearNuevoCliente(int signum){
 				}
 				nClientesRed++;		//aumentamos el contador de clientes de red
 				
-				sprintf(numeroId, "%d", nClientesRed);
-				nuevoCliente.id=strcat("clired_", numeroId);
+				snprintf(numeroId, "%d", nClientesRed);
+				nuevoCliente->id=strdup(strcat("clired_", numeroId));
 
-				//yo creo que es mejor ponerlos a 0 aqui
-				nuevoCliente.atendido=0;
-				nuevoCliente.tipo="Red";	//cliente de red
-				nuevoCliente.prioridad=calculaAleatorios(1, 10);
-				printf("El cliente es %c\n", nuevoCliente.id);
+				nuevoCliente->atendido=0;
+				nuevoCliente->tipo=strdup("Red");	//cliente de red
+				nuevoCliente->prioridad=calculaAleatorios(1, 10);
+				printf("El cliente es %s\n", nuevoCliente->id);
 
 			break;
 
 		}
-
-		arrayClientes[nClientes-1]=nuevoCliente;		//asigna la estructura nuevoCliente al ultimo elemento de arrayClientes
-
 		pthread_t hiloClientes;		//hiloClientes es una variable de tipo pthread_t que se ha declarado para almacenar el identificador de un hilo específico
-		arrayHilosClientes[nClientes-1]=hiloClientes;		//asigna la estructura hiloClientes al ultimo elemento de arrayHilosClientes
-
-		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)(nClientes-1));		//pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada. El hilo se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
-
+		pthread_create(&hiloClientes, NULL, accionesCliente, (void*)nuevoCliente);		//pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada. El hilo se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
+		pthread_detach(hiloClientes);
 		pthread_mutex_unlock(&semaforoColaClientes);		//libera el hilo del mutex y permite a otros otros hilos poder entrar en la cola de cliente y asi en la seccion critica
-	}else{
-		pthread_mutex_unlock(&semaforoColaClientes);
-		printf("No se ha podido atender al cliente\n");
+		printf("Se ha creado un nuevo cliente con ID %s y tipo %s\n", nuevoCliente->id, nuevoCliente->tipo);
 
-		return;
+	}else{
+		printf("No hay espacio disponible para atender a más clientes en este momento\n");
 	}
 }
 
@@ -279,6 +276,7 @@ void accionesCliente (void* nuevoCliente) {
 	//Fin del hilo cliente
 	pthread_exit(NULL);
 }
+
 void accionesTecnico(void *arg){
 	int tiempoAtencion;
 	if(nClientesApp==0){
@@ -321,14 +319,16 @@ void accionesTecnico(void *arg){
 
 	
 }
+
 void accionesEncargado(void *arg){
 	int i;
 	bool atendiendo=true; //bandera que indica si está atendiendo a un cliente o no
-	if(nClientes==0){
-		sleep(3);
-		accionesEncargado();
-	}
+	
 	while(atendiendo){
+		//espera a que haya clientes disponibles
+		while(nClientes==0){
+			sleep(3);
+		}
 		//busca al cliente para atender primero de red y si no hubiera de tipo app
 		int clienteAtender=-1;
 		pthread_mutex_lock(&semaforoColaClientes);
@@ -377,8 +377,36 @@ void accionesEncargado(void *arg){
     				tiempoAtencion=(20 * rand())/RAND_MAX + 1;
   				}
 			}
+			//guardar en el log que comienza la atención
+			pthread_mutex_lock(&semaforoFichero);
+			fprintf(logFile, "El encargado comienza a atender al cliente %s\n", arrayClientes[clienteAtender].id);
+			pthread_mutex_unlock(&semaforoFichero);
+
+			//dormimos el tiempo de atención
+			sleep(tiempoAtencion);
+
+			//guardar en el log que finaliza la atención
+			pthread_mutex_lock(&semaforoFichero);
+			fprintf(logFile, "El encargado ha finalizado la atención al cliente %s\n", arrayClientes[clienteAtender].id);
+			pthread_mutex_unlock(&semaforoFichero);
+
+			//guardar en el log el motivo del fin de la atención
+			if(arrayClientes[clienteAtender].solicitud == 1){
+				pthread_mutex_lock(&semaforoFichero);
+				fprintf(logFile, "%s\n", atencionFinaliza);
+				pthread_mutex_unlock(&semaforoFichero);
+			}
+			else if(arrayClientes[clienteAtender].prioridad == 0){
+				pthread_mutex_lock(&semaforoFichero);
+				fprintf(logFile, "%s\n", muchaEspera);
+				pthread_mutex_unlock(&semaforoFichero);
+			}
 		}
 	}
+}
+
+void accionesTecnicoDomiciliario(){
+
 }
 
 /*Función que escribe en el log cuando un cliente se va antes de ser atendido*/
@@ -476,13 +504,6 @@ void writeLogMessage(char *id, char *msg) {
 	fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
 	fclose(logFile);
 }
-
-//IMPORTANTE::::::AÑADIR CONDICION DE QUE SI ESTAN LOS DOS OCUPADOS ATENDERLOS ENCARGADO
-
-//void atender_cliente(){
-//	printf("Se esta atendiendo al cliente %d (%c)\n, c.id, c.tipo");
-//	sleep(1);	//se simula el tiempo de atencion
-//}
 
 /*Función que finaliza el programa al recibir la señal*/
 void finalizarPrograma (int signal) {
