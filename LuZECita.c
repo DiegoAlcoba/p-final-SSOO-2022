@@ -139,13 +139,13 @@ void accionesCliente (void* nuevoCliente) {
 	Hay que cambiar los nuevoCliente.tipo, etc. por arrayClientes[(nuevoCliente)].atendido, etc.
 	*/
 
-	//Guardar en log la hora de entrada al sistema y tipo de cliente
+	/*Guardar en log la hora de entrada al sistema y tipo de cliente*/
 	pthread_mutex_lock(&semaforoFichero);
 	writeLogMessage(nuevoCliente.id, entrada); //Escribe el id del cliente y el char "entrada" (variable global)
 	writeLogMessage(nuevoCliente.id, nuevoCliente.tipo); //Escribe el id y tipo del cliente
 	pthread_mutex_unlock(&semaforoFichero);
 
-	//Comprobar si el cliente está atendido
+	/*Comprobar si el cliente está atendido - Comprobar que no lo está*/
 	pthread_mutex_lock(&semaforoColaClientes);
 
 	do {
@@ -198,14 +198,14 @@ void accionesCliente (void* nuevoCliente) {
 
 	} while (nuevoCliente.atendido == 0);
 
-	//Cliente siendo atendido, comprueba cada 2 segundos que la atención haya terminado
+	/*Cliente siendo atendido, comprueba cada 2 segundos que la atención haya terminado*/
 	while (arrayClientes[(nuevoCliente)].atendido == 1){
 		sleep(2);
 	}
 
 	/**************************************************************************************************/
 
-	//Cliente de tipo red y solicita atención domiciliaria una vez ::ha sido atendido::
+	/*Cliente de tipo red y solicita atención domiciliaria una vez <<ha sido atendido>> */
 	if (arrayClientes[(nuevoCliente)].tipo == "Red" /*&& arrayClientes[(nuevoCliente)].atendido == 2*/ && arrayClientes[(nuevoCliente)].solicitud == 1) {
 		 
   	     //pthread_mutex_lock(&semaforoSolicitudes) con variables condición, ahora mismo no lo hago
