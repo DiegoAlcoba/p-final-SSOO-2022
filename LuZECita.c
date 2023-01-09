@@ -127,6 +127,8 @@ void crearNuevoCliente(int signum, struct cliente *nuevoCliente){
 
 			break;
 
+			free(nuevoCliente->id);
+			free(nuevoCliente->tipo);
 		}
 		pthread_t hiloClientes;		//hiloClientes es una variable de tipo pthread_t que se ha declarado para almacenar el identificador de un hilo específico
 		pthread_create(&hiloClientes, NULL, accionesCliente, (void*)nuevoCliente);		//pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada. El hilo se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
