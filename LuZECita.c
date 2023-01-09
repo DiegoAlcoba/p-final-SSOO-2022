@@ -87,11 +87,14 @@ void crearNuevoCliente(int signum){
 					exit(-1);
 				}
 			
+				nClientesApp++;				//aumentamos el contador de clientes de app
+
 				sprintf(numeroId, "%d", nClientesApp);
 				nuevoCliente.id=strcat("cliapp_", numeroId);
+				
+				//!!!! .atendido y .solicitud ya inicializados a 0 en el main
 				nuevoCliente.atendido=0;	//0 indica que el cliente todavia no ha sido atendido
 				nuevoCliente.tipo="App";	//cliente de la app
-				nClientesApp++;				//aumentamos el contador de clientes de app
 				nuevoCliente.solicitud=0;	//ponemos la solicitud del cliente en 0
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
 				printf("El cliente es %c\n", nuevoCliente.id);
@@ -103,12 +106,14 @@ void crearNuevoCliente(int signum){
 					perror("Error en signal");
 					exit(-1);
 				}
-
+				nClientesRed++;		//aumentamos el contador de clientes de red
+				
 				sprintf(numeroId, "%d", nClientesRed);
 				nuevoCliente.id=strcat("clired_", numeroId);
+				
+				//!!!! .atendido y .solicitud ya inicializados a 0 en el main
 				nuevoCliente.atendido=0;
 				nuevoCliente.tipo="Red";	//cliente de red
-				nClientesRed++;		//aumentamos el contador de clientes de red
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);
 				printf("El cliente es %c\n", nuevoCliente.id);
 
@@ -133,16 +138,19 @@ void crearNuevoCliente(int signum){
 }
 
 void accionesCliente (void* nuevoCliente) {
-
+	//Esto creo que no funcione, probar otra manera de castear
+	//int aCliente = *(int *)nuevoCliente ??
+	//int aCliente = *(intptr_t *)nuevoCliente <-- Este creo que no falla
 	(int *) nuevoCliente;
+
 	/*	
 	Hay que cambiar los nuevoCliente.tipo, etc. por arrayClientes[(nuevoCliente)].atendido, etc.
 	*/
 
 	/*Guardar en log la hora de entrada al sistema y tipo de cliente*/
 	pthread_mutex_lock(&semaforoFichero);
-	writeLogMessage(nuevoCliente.id, entrada); //Escribe el id del cliente y el char "entrada" (variable global)
-	writeLogMessage(nuevoCliente.id, nuevoCliente.tipo); //Escribe el id y tipo del cliente
+	writeLogMessage(arrayClientes[(nuevoCliente)].id, entrada); //Escribe el id del cliente y el char "entrada" (variable global)
+	writeLogMessage(arrayClientes[(nuevoCliente)]id, arrayClientes[(nuevoCliente)].tipo); //Escribe el id y tipo del cliente
 	pthread_mutex_unlock(&semaforoFichero);
 
 	/*Comprobar si el cliente está atendido - Comprobar que no lo está*/
@@ -152,10 +160,10 @@ void accionesCliente (void* nuevoCliente) {
 		int comportamiento = calculaAleatorios(1, 100);
 
 		if (comportamiento <= 10) { //Un 10% encuentra la app dificil y se va
-			clienteFuera(nuevoCliente.id, appDificil); //Se escribe en el log
+			clienteFuera(arrayClientes[(nuevoCliente)].id, appDificil); //Se escribe en el log
 
 			//Liberar espacio en la cola de clientes
-			liberaEspacioClientes(nuevoCliente.tipo); //Funcíón que resta un cliente de nClientes y nClientes(tipo) cuando este se va
+			liberaEspacioClientes(arrayClientes[(nuevoCliente)].tipo); //Funcíón que resta un cliente de nClientes y nClientes(tipo) cuando este se va
 
 			//Libera un hueco en el array de clientes
 			borrarCliente((int )nuevoCliente); //Función que borra al cliente del arrayClientes
@@ -167,10 +175,10 @@ void accionesCliente (void* nuevoCliente) {
 		else if (comportamiento > 10 && comportamiento <= 30) { //Un 20% se cansa de esperar
 			sleep(8);
 
-			clienteFuera(nuevoCliente.id, muchaEspera);
+			clienteFuera(arrayClientes[(nuevoCliente)].id, muchaEspera);
 
 			//Liberar espacio en la cola de clientes
-			liberaEspacioClientes(nuevoCliente.tipo); //Funcíón que resta un cliente de nClientes y nClientes(tipo) cuando este se va
+			liberaEspacioClientes(arrayClientes[(nuevoCliente)].tipo); //Funcíón que resta un cliente de nClientes y nClientes(tipo) cuando este se va
 
 			//Libera un hueco en el array de clientes
 			borrarCliente((int )nuevoCliente); //Función que borra al cliente del arrayClientes
@@ -180,10 +188,10 @@ void accionesCliente (void* nuevoCliente) {
 			pthread_exit(NULL);
 		}
 		else if (comportamiento > 30 && comportamiento <= 35) { //Un 5% del restante pierde la conexión a internet
-			clienteFuera(nuevoCliente.id, noInternet);
+			clienteFuera(arrayClientes[(nuevoCliente)].id, noInternet);
 
 			//Liberar espacio en la cola de clientes (Antes o después dek unlock & exit??)
-			liberaEspacioClientes(nuevoCliente.tipo);
+			liberaEspacioClientes(arrayClientes[(nuevoCliente)].tipo);
 
 			//Libera un hueco en el array de clientes
 			borrarCliente((int )nuevoCliente); //Función que borra al cliente del arrayClientes
@@ -196,7 +204,7 @@ void accionesCliente (void* nuevoCliente) {
 			sleep(2);
 		}
 
-	} while (nuevoCliente.atendido == 0);
+	} while (arrayClientes[(nuevoCliente)].atendido == 0);
 
 	/*Cliente siendo atendido, comprueba cada 2 segundos que la atención haya terminado*/
 	while (arrayClientes[(nuevoCliente)].atendido == 1){
@@ -206,7 +214,7 @@ void accionesCliente (void* nuevoCliente) {
 	/**************************************************************************************************/
 
 	/*Cliente de tipo red y solicita atención domiciliaria una vez <<ha sido atendido>> */
-	if (arrayClientes[(nuevoCliente)].tipo == "Red" /*&& arrayClientes[(nuevoCliente)].atendido == 2*/ && arrayClientes[(nuevoCliente)].solicitud == 1) {
+	if (arrayClientes[(nuevoCliente)].tipo == "Red" /*&& arrayClientes[(nuevoCliente)].atendido == 2*/ /*Esto creo que no, la solicitud se hace una vez ha sido atendido*/&& arrayClientes[(nuevoCliente)].solicitud == 1) {
 		 
   	     //pthread_mutex_lock(&semaforoSolicitudes) con variables condición, ahora mismo no lo hago
   	     
@@ -217,13 +225,13 @@ void accionesCliente (void* nuevoCliente) {
   	        	 
   	        	//Se escribe en el log que el cliente quiere atención
   	        	pthread_mutex_lock(&semaforoFichero);
-  	        	writeLogMessage(nuevoCliente.id, esperaAtencion);
+  	        	writeLogMessage(arrayClientes[(nuevoCliente)].id, esperaAtencion);
   	        	pthread_mutex_unlock(&semaforoFichero);
   	        	
   	        	//Se cambia el valor de solicitud a 1
 				//////////////////////No definitivo
   	        	pthread_mutex_lock(&semaforoColaClientes);
-  	        	nuevoCliente.solicitud = 1;
+  	        	arrayClientes[(nuevoCliente)].solicitud = 1;
   	        	pthread_mutex_unlock(&semaforoColaClientes);
 				////////////////////////////////
   	        	
@@ -235,7 +243,7 @@ void accionesCliente (void* nuevoCliente) {
   	        	
   	        	//Se escribe en el log que la atencion ha finalizado
   	        	pthread_mutex_lock(&semaforoFichero);
-  	        	writeLogMessage(nuevoCliente.id, atencionFinaliza);
+  	        	writeLogMessage(arrayClientes[(nuevoCliente)].id, atencionFinaliza);
   	        	pthread_mutex_unlock(&semaforoFichero);
 			} 
 			else {
@@ -267,6 +275,8 @@ void accionesCliente (void* nuevoCliente) {
 	pthread_exit(NULL);
 }
 	
+//!!!!accionesEncargado no lleva asterisco, es el nombre de la función. El void *arg sí.
+//!!!!Pon otro nombre a arg que se entienda que argumento recibe la función (el hilo) (encargado?)
 void *accionesEncargado(void *arg){
 	int i;
 	bool atendiendo=true; //bandera que indica si está atendiendo a un cliente o no
@@ -331,13 +341,25 @@ void clienteFuera(char *id, char *razon) {
 	pthread_mutex_unlock(&semaforoFichero);
 }
 
+/*Función que decrementa el número de clientes total y del tipo*/
 void liberaEspacioClientes(char *tipoCliente) {
-	if (nuevoCliente.tipo == "App") {
+	if (tipoCliente == "App") {
 		nClientesApp--;	
 	} else {
 		nClientesRed--;
 	}
 	nClientes--;
+}
+
+/*Función que elimina un cliente del array de clientes*/
+void borrarCliente (int posicionCliente) {
+
+	for (int i = posicionCliente; i < (nClientes - 1); i++) {
+		arrayClientes[i] = arrayClientes[i + 1]; //El cliente en cuestión se iguala al de la siguiente posición (inicializado todo a 0)
+	}
+
+	struct cliente structVacia; //Se declara un cliente vacío
+	arrayClientes[nClientes - 1] = structVacia; //El cliente pasa a estar vació (todo a 0)
 }
 
 //¿Esto es la función "accionesTecnico" que ejecutan los hilos de tecnicos?  
