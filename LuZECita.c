@@ -96,7 +96,7 @@ void crearNuevoCliente(int signum){
 				sprintf(numeroId, "%d", nClientesApp);
 				nuevoCliente.id=strcat("cliapp_", numeroId);
 				
-				//!!!! .atendido y .solicitud ya inicializados a 0 en el main
+				//yo creo que es mejor ponerlos a 0 aqui
 				nuevoCliente.atendido=0;	//0 indica que el cliente todavia no ha sido atendido
 				nuevoCliente.tipo="App";	//cliente de la app
 				nuevoCliente.solicitud=0;	//ponemos la solicitud del cliente en 0
@@ -114,8 +114,8 @@ void crearNuevoCliente(int signum){
 				
 				sprintf(numeroId, "%d", nClientesRed);
 				nuevoCliente.id=strcat("clired_", numeroId);
-				
-				//!!!! .atendido y .solicitud ya inicializados a 0 en el main
+
+				//yo creo que es mejor ponerlos a 0 aqui
 				nuevoCliente.atendido=0;
 				nuevoCliente.tipo="Red";	//cliente de red
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);
@@ -278,10 +278,8 @@ void accionesCliente (void* nuevoCliente) {
 	//Fin del hilo cliente
 	pthread_exit(NULL);
 }
-	
-//!!!!accionesEncargado no lleva asterisco, es el nombre de la función. El void *arg sí.
-//!!!!Pon otro nombre a arg que se entienda que argumento recibe la función (el hilo) (encargado?)
-void *accionesEncargado(void *arg){
+
+void accionesEncargado(void *arg){
 	int i;
 	bool atendiendo=true; //bandera que indica si está atendiendo a un cliente o no
 
