@@ -34,6 +34,10 @@ pthread_mutex_t semaforoFichero;
 pthread_mutex_t semaforoColaClientes;
 pthread_mutex_t semaforoSolicitudes;
 
+//Variables condicion
+pthread_cond_t condicionSaleViaje; //Condición por la que el técnico sale de viaje
+pthread_cond_t condicionTerminaViajes; //Condición por la que el técnico avisa de que ha terminado de atender a los 4 de atención domiciliaria
+
 //Array de hilo-cliente
 pthread_t *arrayHilosClientes;
 
@@ -487,10 +491,17 @@ int main(int argc, char* argv[]) {
 	if (pthread_mutex_init(&semaforoColaClientes, NULL) != 0) exit(-1);
 	if (pthread_mutex_init(&semaforoSolicitudes, NULL) != 0) exit(-1);
 
+	/* Inicialización de variables condicion*/
+	if (pthread_cond_init(&condicionSaleViaje, NULL) != 0) exit(-1);
+	if (pthread_cond_init(&condicionTerminaViajes, NULL) != 0) exit(-1);
+
 	//Contadores de clientes
 	int nClientes = 0;
 	int nClientesApp = 0;
 	int nClientesRed = 0;
+
+	//Variables relativas a la solicitud de atención domiciliaria
+	int nSolicitudesDomiciliarias = 0; //Contador para las solicitudes, cuando sean 4 el técnico sale de viaje
 
 	//Lista clientes
 	struct cliente *clienteApp;
@@ -580,11 +591,7 @@ int main(int argc, char* argv[]) {
 	logFile = fopen("registroTiempos.log", "wt"); //Opcion "wt" = Cada vez que se ejecuta el programa, si el archivo ya existe se elimina su contenido para empezar de cero
 	fclose(logFile);
 
-	//Variables relativas a la solicitud de atención domiciliaria
-	int nSolicitudesDomiciliarias = 0; //Contador para las solicitudes, cuando sea 4 se envía atención domiciliaria
-
-	//Variables condicion
-	//*** MUY IMPORTANTE *** -> Esto creo que es un array condicion similar al de la práctica 8
+	//::::::::::::::::::::::::::::Añadir un mutex a la creación de hilos? No sé si hace falta
 
 	/* CREACIÓN DE HILOS DE TECNICOS, RESPONSABLES, ENCARGADO Y ATENCION DOMICILIARIA */
 	//Se pasa como argumento la estructura del trabajador que ejecuta el hilo
