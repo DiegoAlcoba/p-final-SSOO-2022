@@ -28,6 +28,7 @@ char *noInternet = "El cliente se ha ido porque ha perdido la conexión a intern
 char *esperaAtencion = "El cliente espera por la atención domiciliaria";
 char *atencionFinaliza = "La atención domiciliaria ha finalizado";
 char *clienteAtendido = "El cliente ha sido atendido correctamente y se va.";
+char *clienteEmpiezaAtendido= "El cliente comienza a ser atendido.";
 
 /*Variables globales*/
 pthread_mutex_t semaforoFichero;
@@ -278,11 +279,55 @@ void accionesCliente (void* nuevoCliente) {
 	//Fin del hilo cliente
 	pthread_exit(NULL);
 }
+void accionesTecnico(void *arg){
+	int tiempoAtencion;
+	if(nClientesApp==0){
+		sleep(5);
+		accionesTecnico();
+	}
+	//dudoso
+	if(tecnico1.clientesAtendidos==5){
+		tecnico1.libre=1;
+		tecnico1.clientesAtendidos=0;
+		sleep(5);
+	}
+	if(tecnico1.libre==0){
+		for(i=0; i<nClientes; i++){
+			if(arrayClientes[i].atendido==0&&arrayClientes[i].tipo=="App"){
+					//prioridades
+					//mayor tiempo esperando
+					
+					arrayClientes[i].atendido=1;
+					writeLogMessage(arrayClientes[(i)].id, clienteEmpiezaAtendido);
+					
+					if(arrayClientes[clienteAtender].solicitud==1){ //si el cliente ha solicitado atención domiciliaria
+						tiempoAtencion=(80 * rand())/RAND_MAX + 1;
+					}
+					if(arrayClientes[clienteAtender].solicitud==1){ //si el cliente ha solicitado atención domiciliaria
+						tiempoAtencion=(10 * rand())/RAND_MAX + 1;
+					}
+					if(arrayClientes[clienteAtender].solicitud==1){ //si el cliente ha solicitado atención domiciliaria
+						tiempoAtencion=(10 * rand())/RAND_MAX + 1;
+					}
+						
 
+			}
+		}
+	}else if(tecnico2.libre==0){
+
+	}else{
+		accionesEncargado();
+	}
+
+	
+}
 void accionesEncargado(void *arg){
 	int i;
 	bool atendiendo=true; //bandera que indica si está atendiendo a un cliente o no
-
+	if(nClientes==0){
+		sleep(3);
+		accionesEncargado();
+	}
 	while(atendiendo){
 		//busca al cliente para atender primero de red y si no hubiera de tipo app
 		int clienteAtender=-1;
