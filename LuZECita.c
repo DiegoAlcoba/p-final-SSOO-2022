@@ -77,7 +77,7 @@ FILE *logFile;
 /****************************************** HILOS Y FUNCIONES PRINCIPALES ******************************************/
 
 /*Crea un nuevo cliente cuando recibe una de las dos señales definidas para ello*/
-void crearNuevoCliente(int signum, struct cliente *nuevoCliente){
+void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la estructura del cliente es una variable global
 	bool espacioDisponible=false;
 
 	pthread_mutex_lock(&semaforoColaClientes);
@@ -580,10 +580,10 @@ int main(int argc, char* argv[]) {
 	int nClientesApp = 0;
 	int nClientesRed = 0;
 
-	//Variables relativas a la solicitud de atención domiciliaria
-	int nSolicitudesDomiciliarias = 0; //Contador para las solicitudes, cuando sean 4 el técnico sale de viaje
+	//Contador de solicitudes domiciliarias
+	int nSolicitudesDomiciliarias = 0;
 
-	//Lista clientes
+	//Lista de tipos de clientes
 	struct cliente *clienteApp;
 		clienteApp -> id = (char *) malloc (12 * sizeof(char));
 		clienteApp -> id = "cliapp_"; //Luego en cada cliente creado se le añade el número al final de la cadena de caracteres con ¿strcat? creo
@@ -608,7 +608,7 @@ int main(int argc, char* argv[]) {
 		clienteRed  -> prioridad = 0;
 		clienteRed -> solicitud = 0;
 
-	//Lista trabajadores
+	//Lista de trabajadores
 	/*Técnicos*/
 	struct trabajador *tecnico_1;
 	tecnico_1 -> id = (char *) malloc (10  * sizeof(char));
@@ -696,10 +696,6 @@ int main(int argc, char* argv[]) {
 	free(arrayHilosClientes);
 	free(arrayClientes);
 	free(arrayClientesSolicitudes);
-	free(clienteApp->id);
-	free(clienteApp->tipo);
-	free(clienteRed->id);
-	free(clienteRed->tipo);
 
 	return 0;
 }
