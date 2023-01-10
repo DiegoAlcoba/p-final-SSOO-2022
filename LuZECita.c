@@ -134,10 +134,10 @@ void crearNuevoCliente(int signum, struct cliente *nuevoCliente){
 			free(nuevoCliente->id);
 			free(nuevoCliente->tipo);
 		}
+		pthread_mutex_unlock(&semaforoColaClientes);		//libera el hilo del mutex y permite a otros otros hilos poder entrar en la cola de cliente y asi en la seccion critica
 		pthread_t hiloClientes;		//hiloClientes es una variable de tipo pthread_t que se ha declarado para almacenar el identificador de un hilo específico
 		pthread_create(&hiloClientes, NULL, accionesCliente, (void*)nuevoCliente);		//pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada. El hilo se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
 		pthread_detach(hiloClientes);
-		pthread_mutex_unlock(&semaforoColaClientes);		//libera el hilo del mutex y permite a otros otros hilos poder entrar en la cola de cliente y asi en la seccion critica
 		printf("Se ha creado un nuevo cliente con ID %s y tipo %s\n", nuevoCliente->id, nuevoCliente->tipo);
 
 	}else{
@@ -682,7 +682,7 @@ int main(int argc, char* argv[]) {
 	pthread_create(&responsable1, NULL, accionesTecnico, (void *) responsable_1);
 	pthread_create(&responsable2, NULL, accionesTecnico, (void *) responsable_2);
 	pthread_create(&encargado, NULL, accionesEncargado, (void *) encargado_);
-	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, (void *)/*argumentos necesarios para la ejecución del hilo, ningún trabajador en particular*/);
+	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, (void *);/*argumentos necesarios para la ejecución del hilo, ningún trabajador en particular*/);
 
 	/* ESPERAR POR SEÑALES INFINITAMENTE */
 	while(1) {
@@ -696,6 +696,10 @@ int main(int argc, char* argv[]) {
 	free(arrayHilosClientes);
 	free(arrayClientes);
 	free(arrayClientesSolicitudes);
+	free(clienteApp->id);
+	free(clienteApp->tipo);
+	free(clienteRed->id);
+	free(clienteRed->tipo);
 
 	return 0;
 }
