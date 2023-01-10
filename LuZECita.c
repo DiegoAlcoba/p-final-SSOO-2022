@@ -80,6 +80,7 @@ FILE *logFile;
 
 /*Crea un nuevo cliente cuando recibe una de las dos señales definidas para ello*/
 void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la estructura del cliente es una variable global
+	struct cliente nuevoCliente;
 	bool espacioDisponible=false;
 
 	pthread_mutex_lock(&semaforoColaClientes);
@@ -106,13 +107,13 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 				nClientesApp++;				//aumentamos el contador de clientes de app
 
 				snprintf(numeroId, "%d", nClientesApp);
-				nuevoCliente->id=strdup(strcat("cliapp_", numeroId));
+				nuevoCliente.id=strdup(strcat("cliapp_", numeroId));
 				
-				nuevoCliente->atendido=0;	//0 indica que el cliente todavia no ha sido atendido
-				nuevoCliente->tipo=strdup("App");	//cliente de la app
-				nuevoCliente->solicitud=0;	//ponemos la solicitud del cliente en 0
-				nuevoCliente->prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
-				printf("El cliente es %s\n", nuevoCliente->id);
+				nuevoCliente.atendido=0;	//0 indica que el cliente todavia no ha sido atendido
+				nuevoCliente.tipo=strdup("App");	//cliente de la app
+				nuevoCliente.solicitud=0;	//ponemos la solicitud del cliente en 0
+				nuevoCliente.prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
+				printf("El cliente es %s\n", nuevoCliente.id);
 				
 			break;
 
@@ -124,23 +125,22 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 				nClientesRed++;		//aumentamos el contador de clientes de red
 				
 				snprintf(numeroId, "%d", nClientesRed);
-				nuevoCliente->id=strdup(strcat("clired_", numeroId));
+				nuevoCliente.id=strdup(strcat("clired_", numeroId));
 
-				nuevoCliente->atendido=0;
-				nuevoCliente->tipo=strdup("Red");	//cliente de red
-				nuevoCliente->prioridad=calculaAleatorios(1, 10);
-				printf("El cliente es %s\n", nuevoCliente->id);
+				nuevoCliente.atendido=0;
+				nuevoCliente.tipo=strdup("Red");	//cliente de red
+				nuevoCliente.prioridad=calculaAleatorios(1, 10);
+				printf("El cliente es %s\n", nuevoCliente.id);
 
 			break;
 
-			free(nuevoCliente->id);
-			free(nuevoCliente->tipo);
 		}
+		arrayClientes[nClientes-1]=nuevoCliente; //asigna la estructura nuevoCliente al ultimo elemento de arrayClientes
+		pthread_t hiloClientes; //hiloClientes es una variable de tipo pthread_t que se ha declarado para almacenar el identificador de un hilo específico
+		arrayHilosClientes[nClientes-1]=hiloClientes; //asigna la estructura hiloClientes al ultimo elemento de arrayHilosClientes
+		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)(nClientes-1)); //pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada. El hilo se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
 		pthread_mutex_unlock(&semaforoColaClientes);		//libera el hilo del mutex y permite a otros otros hilos poder entrar en la cola de cliente y asi en la seccion critica
-		pthread_t hiloClientes;		//hiloClientes es una variable de tipo pthread_t que se ha declarado para almacenar el identificador de un hilo específico
-		pthread_create(&hiloClientes, NULL, accionesCliente, (void*)nuevoCliente);		//pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada. El hilo se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
-		pthread_detach(hiloClientes);
-		printf("Se ha creado un nuevo cliente con ID %s y tipo %s\n", nuevoCliente->id, nuevoCliente->tipo);
+		printf("Se ha creado un nuevo cliente con ID %s y tipo %s\n", nuevoCliente.id, nuevoCliente.tipo);
 
 	}else{
 		printf("No hay espacio disponible para atender a más clientes en este momento\n");
