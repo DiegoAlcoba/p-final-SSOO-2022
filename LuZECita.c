@@ -37,7 +37,14 @@ char *clienteFinalizaAtencion= "El cliente finaliza la atencion.";
 char *todoEnRegla= "Se ha finalizado la atencion ya que el cliente tenia todo en regla";
 char *malIdentificados= "Se ha finalizado la atencion ya que el cliente estaba mal identificado";
 char *confusionCompañia= "Se ha finalizado la atencion ya que el cliente se ha confundido de compañia";
+char *signalFinalizacion = "    SIGINT";
+char *finPrograma = "SE PROCEDE A LA FINALIZACION DEL PROGRAMA";
+
 /*Variables globales*/
+//Declaración de los hilos de trabajadores
+pthread_t tecnico_1, tecnico_2, responsable_1, responsable_2, encargado_, atencionDomiciliaria_;
+
+//Semáforos mutex
 pthread_mutex_t semaforoFichero;
 pthread_mutex_t semaforoColaClientes;
 pthread_mutex_t semaforoSolicitudes;
@@ -565,6 +572,7 @@ void accionesTecnicoDomiciliario(){
 
 }
 
+//:::::::::::::::::::::::: NO DEFINITIVA, HA SIDO A VOLEO ::::::::::::::::::::::::::::::::::::::::::::::
 /*Función que finaliza el programa al recibir la señal SIGINT*/
 void finalizarPrograma (int signal) {
 
@@ -573,14 +581,45 @@ void finalizarPrograma (int signal) {
 		Hilos tienen que terminar de forma correcta, se libera memoria, etc.
 	*/
 
-	//Creo que no hace falta porque los clientes terminan el hilo al ser atendidos, y los trabajadores esperan a atender hasta que el usuario finalice el programa
-	//pthread_mutex_destroy();
+	printf("\nSe ha recibido la señal SIGINT. Procediendo a finalizar el programa...\n");
+
+	/*Se escribe en el log que se va a finalizar el programa*/
+	pthread_mutex_lock(&semaforoFichero);
+	writeLogMessage(signalFinalizacion, finPrograma);
+	pthread_mutex_unlock(&semaforoFichero);
+
+	pthread_mutex_lock(&semaforoColaClientes);
+	pthread_mutex_lock(&semaforoSolicitudes);
+
+	//Se ponen las solicitudes domiciliarias a 0
+	nSolicitudesDomiciliarias = 0;
+
+	//A cada cliente se le cambia la flag de solicitud a 0 y espera a que termine de ser atendido para finalizar los hilos de los trabajadores
+	for (int i = 0; i < arrayClientes[MAX_CLIENTES]; i++) {
+		arrayClientes[i].solicitud = 0;
+		while (arrayClientes[i].atendido == 1) {
+			sleep(2);
+		}
+	}
+
+	pthread_mutex_unlock(&semaforoColaClientes);
+	pthread_mutex_unlock(&semaforoSolicitudes);
+
+	//pthread_mutex_destroy(); <-- No estoy seguro de si hace falta
 
 	/* LIBERACIÓN DE MEMORIA */
 	free(arrayHilosClientes);
 	free(arrayClientes);
 	free(arrayClientesSolicitudes);
 	//Puede que si sea necesario liberar memoria de los char* cuando se inicializan las estructuras en el main, no estoy seguro, depende de si da fallo en ejecución
+
+	/*Se matan los hilos de los trabajadores*/
+	pthread_cancel(tecnico_1);
+	pthread_cancel(tecnico_2);
+	pthread_cancel(responsable_1);
+	pthread_cancel(responsable_2);
+	pthread_cancel(encargado_);
+	pthread_cancel(atencionDomiciliaria_);
 
 	printf("\nAdiós!\n");
 
@@ -648,9 +687,7 @@ int calculaAleatorios(int min, int max) {
 
 int main(int argc, char* argv[]) {
 	
-	/* DECLARACIONES DE RECURSOS */
-	pthread_t tecnico1, tecnico2, responsable1, responsable2, encargado, atencionDomiciliaria;
-
+	/* INICIALIZACIÓN DE RECURSOS */
 	arrayHilosClientes = (pthread_t *) malloc (nClientes * sizeof(struct cliente *)); //Array dinámico de hilos de clientes
 	arrayClientes = (struct cliente *) malloc (nClientes * sizeof(struct cliente *)); //array del total de clientes
 	arrayClientesSolicitudes = (struct cliente *) malloc (4 * sizeof(struct cliente *)); // array de clientes con solicitudes (4 para que salga el responsable)
@@ -722,62 +759,62 @@ int main(int argc, char* argv[]) {
 
 	//Lista de trabajadores
 	/*Técnicos*/
-	struct trabajador *tecnico_1;
-	tecnico_1 -> id = (char *) malloc (10  * sizeof(char));
-	tecnico_1 -> id = "tecnico_1";
+	struct trabajador *tecnico1;
+	tecnico1 -> id = (char *) malloc (10  * sizeof(char));
+	tecnico1 -> id = "tecnico1";
 
-	tecnico_1 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	tecnico1 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 	
-	tecnico_1 -> tipo = (char *) malloc (8 * sizeof(char));
-	tecnico_1 -> tipo = "Tecnico";
+	tecnico1 -> tipo = (char *) malloc (8 * sizeof(char));
+	tecnico1 -> tipo = "Tecnico";
 
-	tecnico_1 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	tecnico1 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
-	struct trabajador *tecnico_2;
-	tecnico_2 -> id = (char *) malloc (10  * sizeof(char));
-	tecnico_2 -> id = "tecnico_2";
+	struct trabajador *tecnico2;
+	tecnico2 -> id = (char *) malloc (10  * sizeof(char));
+	tecnico2 -> id = "tecnico2";
 
-	tecnico_2 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	tecnico2 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 	
-	tecnico_2 -> tipo = (char *) malloc (8 * sizeof(char));
-	tecnico_2 -> tipo = "Tecnico";
+	tecnico2 -> tipo = (char *) malloc (8 * sizeof(char));
+	tecnico2 -> tipo = "Tecnico";
 
-	tecnico_2 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	tecnico2 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	/*Responsables de reparaciones*/
-	struct trabajador *responsable_1;
-	responsable_1 -> id = (char *) malloc (14  * sizeof(char));
-	responsable_1 -> id = "responsable_1";
+	struct trabajador *responsable1;
+	responsable1 -> id = (char *) malloc (14  * sizeof(char));
+	responsable1 -> id = "responsable1";
 
-	responsable_1 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	responsable1 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 	
-	responsable_1 -> tipo = (char *) malloc (20 * sizeof(char));
-	responsable_1 -> tipo = "Resp. Reparaciones";
+	responsable1 -> tipo = (char *) malloc (20 * sizeof(char));
+	responsable1 -> tipo = "Resp. Reparaciones";
 
-	responsable_1 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	responsable1 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
-	struct trabajador *responsable_2;
-	responsable_2 -> id = (char *) malloc (14  * sizeof(char));
-	responsable_2 -> id = "responsable_2";
+	struct trabajador *responsable2;
+	responsable2 -> id = (char *) malloc (14  * sizeof(char));
+	responsable2 -> id = "responsable2";
 
-	responsable_2 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	responsable2 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 	
-	responsable_2 -> tipo = (char *) malloc (20 * sizeof(char));
-	responsable_2 -> tipo = "Resp. Reparaciones";
+	responsable2 -> tipo = (char *) malloc (20 * sizeof(char));
+	responsable2 -> tipo = "Resp. Reparaciones";
 
-	responsable_2 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	responsable2 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	/*Encargado*/
-	struct trabajador *encargado_;
-	encargado_ -> id = (char *) malloc (10 * sizeof(char));
-	encargado_ -> id = "encargado";
+	struct trabajador *encargado;
+	encargado -> id = (char *) malloc (10 * sizeof(char));
+	encargado -> id = "encargado";
 
-	encargado_ -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	encargado -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
-	encargado_ -> tipo = (char *) malloc (10 * sizeof(char));
-	encargado_ -> tipo = "Encargado";
+	encargado -> tipo = (char *) malloc (10 * sizeof(char));
+	encargado -> tipo = "Encargado";
 
-	encargado_ -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	encargado -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	//Fichero de log
 	logFile = fopen("registroTiempos.log", "wt"); //Opcion "wt" = Cada vez que se ejecuta el programa, si el archivo ya existe se elimina su contenido para empezar de cero
@@ -794,12 +831,12 @@ int main(int argc, char* argv[]) {
 
 	/* CREACIÓN DE HILOS DE TECNICOS, RESPONSABLES, ENCARGADO Y ATENCION DOMICILIARIA */
 	//Se pasa como argumento la estructura del trabajador que ejecuta el hilo
-	pthread_create(&tecnico1, NULL, accionesTecnico, (void *) tecnico_1);
-	pthread_create(&tecnico2, NULL, accionesTecnico, (void *) tecnico_2);
-	pthread_create(&responsable1, NULL, accionesTecnico, (void *) responsable_1);
-	pthread_create(&responsable2, NULL, accionesTecnico, (void *) responsable_2);
-	pthread_create(&encargado, NULL, accionesEncargado, (void *) encargado_);
-	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, NULL);/*Este hilo no lo ejecuta ningún trabajador en particular*/
+	pthread_create(&tecnico_1, NULL, accionesTecnico, (void *) tecnico1);
+	pthread_create(&tecnico_2, NULL, accionesTecnico, (void *) tecnico2);
+	pthread_create(&responsable_1, NULL, accionesTecnico, (void *) responsable1);
+	pthread_create(&responsable_2, NULL, accionesTecnico, (void *) responsable2);
+	pthread_create(&encargado_, NULL, accionesEncargado, (void *) encargado);
+	pthread_create(&atencionDomiciliaria_, NULL, accionesTecnicoDomiciliario, NULL);/*Este hilo no lo ejecuta ningún trabajador en particular*/
 
 	/* ESPERAR POR SEÑALES INFINITAMENTE */
 	while(1) {
