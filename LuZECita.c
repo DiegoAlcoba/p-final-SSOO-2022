@@ -37,6 +37,9 @@ char *clienteFinalizaAtencion= "El cliente finaliza la atencion.";
 char *todoEnRegla= "Se ha finalizado la atencion ya que el cliente tenia todo en regla";
 char *malIdentificados= "Se ha finalizado la atencion ya que el cliente estaba mal identificado";
 char *confusionCompañia= "Se ha finalizado la atencion ya que el cliente se ha confundido de compañia";
+char *atencionDomiciliariaText= "Se comienza con la accion domiciliaria del cliente";
+char *atencionDomiciliariaAtendido= " Se ha atendido al cliente en el domicilio";
+char *atencionDomiciliariaFin= "Se finaliza con la accion domiciliaria del cliente";
 /*Variables globales*/
 pthread_mutex_t semaforoFichero;
 pthread_mutex_t semaforoColaClientes;
@@ -702,9 +705,25 @@ void *accionesEncargado(void *arg){
 }
 
 void accionesTecnicoDomiciliario(){
+	for(int i=0; i<nSolicitudesDomiciliarias; i++ ){
+		//hacer el apso 1
+
+		pthread_muted_lock(&semaforoFichero);
+		writeLogMessage(atencionDomiciliariaText, arrayClientesSolicitudes[tiempoAtencion].id);
+		pthread_muted_unlock(&semaforoFichero);
+
+		for(int i=0; i<nSolicitudesDomiciliarias; i++){
+			sleep(1);
+		}
+
+		pthread_muted_lock(&semaforoFichero);
+		writeLogMessage(atencionDomiciliariaAtendido, arrayClientesSolicitudes[tiempoAtencion].id);
+		pthread_muted_unlock(&semaforoFichero);
+		nSolicitudesDomiciliarias
+	}
+
 
 }
-
 /*Función que finaliza el programa al recibir la señal SIGINT*/
 void finalizarPrograma (int signal) {
 
