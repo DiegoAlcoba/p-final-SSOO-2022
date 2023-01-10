@@ -33,7 +33,10 @@ char *esperaAtencion = "El cliente espera por la atención domiciliaria";
 char *atencionFinaliza = "La atención domiciliaria ha finalizado";
 char *clienteAtendido = "El cliente ha sido atendido correctamente y se va.";
 char *clienteEmpiezaAtendido= "El cliente comienza a ser atendido.";
-
+char *clienteFinalizaAtencion= "El cliente finaliza la atencion.";
+char *todoEnRegla= "Se ha finalizado la atencion ya que el cliente tenia todo en regla";
+char *malIdentificados= "Se ha finalizado la atencion ya que el cliente estaba mal identificado";
+char *confusionCompañia= "Se ha finalizado la atencion ya que el cliente se ha confundido de compañia";
 /*Variables globales*/
 pthread_mutex_t semaforoFichero;
 pthread_mutex_t semaforoColaClientes;
@@ -314,46 +317,177 @@ void *accionesCliente (void* nuevoCliente) {
 }
 
 void *accionesTecnico(void *arg){
-	int tiempoAtencion;
-	if(nClientesApp==0){
-		sleep(5);
-		accionesTecnico();
-	}
-	//dudoso
-	if(tecnico1.clientesAtendidos==5){
-		tecnico1.libre=1;
-		tecnico1.clientesAtendidos=0;
-		sleep(5);
-	}
-	if(tecnico1.libre==0){
-		for(i=0; i<nClientes; i++){
-			if(arrayClientes[i].atendido==0&&arrayClientes[i].tipo=="App"){
-					//prioridades
-					//mayor tiempo esperando
+	int tiempoAtencion=0;
+	int flagAtendido=0;
+	int tiempo=0;
+	bool ate= true;
+	struct cliente cliente;
+	while(ate){
+		while(nClientesApp==0){
+			sleep(1);
+		}
+	
+		for(int i =0; i<nClientes; i++ ){
+			if(arrayClientes[i].tipo="App"){
+				if(tecnico1.clientesAtendidos<5 && tecnico1.libre==0){
+				
+					pthread_mutex_lock(&semaforoColaClientes);
+					tiempoAtencion=mayorPrioridad();
+					pthread_mutex_unlock(&semaforoColaClientes);
+
+					pthread_mutex_lock(&semaforoColaClientes);
+					printf("Comienza el tecnico a atender al cliente %s: ", arrayClientes[tiempoAtencion].id);
+					tecnico1.libre=1;
+					arrayClientes[tiempoAtencion].atendido=1;
+
+					pthread_muted_unlock(&semaforoColaClientes);
+					flagAtendido=calculaAleatorios(1, 100);
+				
+
+					if(flagAtendido<=80){
+						tiempo=calculaAleatorios(1,4);
+
+						pthread_muted_lock(&semaforoFichero);
+						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+						pthread_muted_unlock(&semaforoFichero);
+
+						sleep(tiempo);
+
+						pthread_muted_lock(&semaforoFichero);
+						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+						pthread_muted_unlock(&semaforoFichero);
+
+						pthread_muted_lock(&semaforoFichero);
+						writeLogMessage(todoEnRegla, arrayClientes[tiempoAtencion].id);
+						pthread_muted_unlock(&semaforoFichero);
+
+					}else if(flagAtendido>80&&flagAtendido<=90){
+						tiempo=calculaAleatorios(2,6);
+
+						pthread_muted_lock(&semaforoFichero);
+						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+						pthread_muted_unlock(&semaforoFichero);
+
+						sleep(tiempo);
+
+						pthread_muted_lock(&semaforoFichero);
+						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+						pthread_muted_unlock(&semaforoFichero);
+
+						pthread_muted_lock(&semaforoFichero);
+						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
+						pthread_muted_unlock(&semaforoFichero);
+
+
+					}else{
+						tiempo=calculaAleatorios(1,2);
+
+						pthread_muted_lock(&semaforoFichero);
+						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+						pthread_muted_unlock(&semaforoFichero);
+
+						sleep(tiempo);
+
+						pthread_muted_lock(&semaforoFichero);
+						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+						pthread_muted_unlock(&semaforoFichero);
+
+						pthread_muted_lock(&semaforoFichero);
+						writeLogMessage(confusionCompañia, arrayClientes[tiempoAtencion].id);
+						pthread_muted_unlock(&semaforoFichero);
+					}
+					pthread_mutex_lock(&semaforoColaClientes);
+					arrayClientes[tiempoAtencion].atendido=2;
+					tecnico1.libre=0;
+					pthread_mutex_unlock(&semaforoColaClientes);
+
+					if(tecnico1.clientesAtendidos==5){
+						sleep(5);
+						tecnico1.clientesAtendidos=0;
+					}
+				}else if(tecnico2.clientesAtendidos<5 && tecnico2.libre==0){
+				
+						pthread_mutex_lock(&semaforoColaClientes);
+						tiempoAtencion=mayorPrioridad();
+						pthread_mutex_unlock(&semaforoColaClientes);
+
+						pthread_mutex_lock(&semaforoColaClientes);
+						printf("Comienza el tecnico a atender al cliente %s: ", arrayClientes[tiempoAtencion].id);
+						tecnico2.libre=1;
+						arrayClientes[tiempoAtencion].atendido=1;
+
+						pthread_muted_unlock(&semaforoColaClientes);
+						flagAtendido=calculaAleatorios(1, 100);
 					
-					arrayClientes[i].atendido=1;
-					writeLogMessage(arrayClientes[(i)].id, clienteEmpiezaAtendido);
-					
-					if(arrayClientes[clienteAtender].solicitud==1){ //si el cliente ha solicitado atención domiciliaria
-						tiempoAtencion=(80 * rand())/RAND_MAX + 1;
+
+						if(flagAtendido<=80){
+							tiempo=calculaAleatorios(1,4);
+
+							pthread_muted_lock(&semaforoFichero);
+							writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+							pthread_muted_unlock(&semaforoFichero);
+
+							sleep(tiempo);
+
+							pthread_muted_lock(&semaforoFichero);
+							writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+							pthread_muted_unlock(&semaforoFichero);
+
+							pthread_muted_lock(&semaforoFichero);
+							writeLogMessage(todoEnRegla, arrayClientes[tiempoAtencion].id);
+							pthread_muted_unlock(&semaforoFichero);
+
+						}else if(flagAtendido>80&&flagAtendido<=90){
+							tiempo=calculaAleatorios(2,6);
+
+							pthread_muted_lock(&semaforoFichero);
+							writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+							pthread_muted_unlock(&semaforoFichero);
+
+							sleep(tiempo);
+
+							pthread_muted_lock(&semaforoFichero);
+							writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+							pthread_muted_unlock(&semaforoFichero);
+
+							pthread_muted_lock(&semaforoFichero);
+							writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
+							pthread_muted_unlock(&semaforoFichero);
+
+
+						}else{
+							tiempo=calculaAleatorios(1,2);
+
+							pthread_muted_lock(&semaforoFichero);
+							writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+							pthread_muted_unlock(&semaforoFichero);
+
+							sleep(tiempo);
+
+							pthread_muted_lock(&semaforoFichero);
+							writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+							pthread_muted_unlock(&semaforoFichero);
+
+							pthread_muted_lock(&semaforoFichero);
+							writeLogMessage(confusionCompañia, arrayClientes[tiempoAtencion].id);
+							pthread_muted_unlock(&semaforoFichero);
+						}
+						pthread_mutex_lock(&semaforoColaClientes);
+						arrayClientes[tiempoAtencion].atendido=2;
+						tecnico2.libre=0;
+						pthread_mutex_unlock(&semaforoColaClientes);
+
+						if(tecnico2.clientesAtendidos==5){
+							sleep(5);
+							tecnico2.clientesAtendidos=0;
+						}
+					}else{
+						accionesEncargado();
 					}
-					if(arrayClientes[clienteAtender].solicitud==1){ //si el cliente ha solicitado atención domiciliaria
-						tiempoAtencion=(10 * rand())/RAND_MAX + 1;
-					}
-					if(arrayClientes[clienteAtender].solicitud==1){ //si el cliente ha solicitado atención domiciliaria
-						tiempoAtencion=(10 * rand())/RAND_MAX + 1;
-					}
-						
 
 			}
 		}
-	}else if(tecnico2.libre==0){
-
-	}else{
-		accionesEncargado();
 	}
-
-	
 }
 
 void *accionesEncargado(void *arg){
@@ -470,56 +604,27 @@ void finalizarPrograma (int signal) {
 
 /******************************************************** SIGO SIN SABER QUÉ ES ESTO ********************************************************/
 /********************************************************************************************************************************************/
-//¿Esto es la función "accionesTecnico" que ejecutan los hilos de tecnicos?  
-/*funcion del técnico (CUIDADO) es decir atender a los clientes con problemas en la app*/
-void atenderClienteApp(){
-	//IMPORTANTE:::::AÑADIR LO DE LA PRIORIDAD
-	//Se comprueba si el tenico esta libre
-	struct cliente cliente;
-	struct trabajador trabajador;
 
-	if(tecnico1.libre==0){
-		printf("Se va a atender a un cliente con problemas en la app\n");
-		printf("Bienvenido cliente, le esta atendiendo el tecnico 1\n");
-		tecnico1.libre=1;
-		//Compruebo que el cliente que atiendo sea de app
-		if(cliente.tipo==App){
-			printf("El cliente ha sido atendido\n");
-			//Cambio su estado a atendido
-			cliente.atendido=1;
-			++tecnico1.clientesAtendidos;
-			//Si hay 5 descanso 5 seg
-			if(tecnico1.clientesAtendidos==5){
-				tecnico1.libre=1;
-				sleep(5);
-			}
-		}
-	}else if (tecnico2.libre==0){
-		printf("Se va a atender a un cliente con problemas en la app\n");
-		printf("Bienvenido cliente, le esta atendiendo el tecnico 2\n");
-		tecnico2.libre=1;
-		//Compruebo que el cliente que atiendo sea de app
-		if(cliente.tipo==App){
-			printf("El cliente ha sido atendido\n");
-			//Cambio su estado a atendido
-			cliente.atendido=1;
-			++tecnico2.clientesAtendidos;
-			//Si hay 5 descanso 5 seg
-			if(tecnico2.clientesAtendidos==5){
-				tecnico2.libre=1;
-				sleep(5);
-			}
-		}
-	}else{
-		printf("Ningun tecnico esta libre en este momento\n");
-	}
-}
 
 /*************************************************************************************************************************************************/
 
 
 /****************************************** FUNCIONES AUXILIARES ******************************************/
+int mayorPrioridad(){
+	int mayorPrioridad=-999;
+	int pos=0;
+	for(int i=0; i<nClientes; i++){
+		if(arrayClientes[i].tipo="App"){
+			//Comrpobamos solo la prioridad proque al ser un array por orden de llegada el primero va a ser el que devuelva, es decir el que mas tiempo lleve espernado
+			if(mayorPrioridad<arrayClientes[i].prioridad){
+				mayorPrioridad=arrayClientes[i].prioridad;
+				pos=i;
+			}
+		}
 
+	}
+	return pos;
+}	
 /*Función que escribe los mensajes en log*/
 void writeLogMessage(char *id, char *msg) {
 	//Se calcula la hora actual
