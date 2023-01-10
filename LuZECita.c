@@ -106,13 +106,12 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 			
 				nClientesApp++;				//aumentamos el contador de clientes de app
 
-				snprintf(numeroId, "%d", nClientesApp);
-				nuevoCliente.id=strdup(strcat("cliapp_", numeroId));
-				
-				nuevoCliente.atendido=0;	//0 indica que el cliente todavia no ha sido atendido
-				nuevoCliente.tipo=strdup("App");	//cliente de la app
-				nuevoCliente.solicitud=0;	//ponemos la solicitud del cliente en 0
+				sprintf(numeroId, "%d", nClientesApp);
+
+				nuevoCliente.id=strcat("cliapp_", numeroId);
+				nuevoCliente.tipo="App";	//cliente de la app
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
+
 				printf("El cliente es %s\n", nuevoCliente.id);
 				
 			break;
@@ -124,12 +123,12 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 				}
 				nClientesRed++;		//aumentamos el contador de clientes de red
 				
-				snprintf(numeroId, "%d", nClientesRed);
-				nuevoCliente.id=strdup(strcat("clired_", numeroId));
-
-				nuevoCliente.atendido=0;
-				nuevoCliente.tipo=strdup("Red");	//cliente de red
+				sprintf(numeroId, "%d", nClientesRed);
+				
+				nuevoCliente.id=strcat("clired_", numeroId);
+				nuevoCliente.tipo="Red";	//cliente de red
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);
+
 				printf("El cliente es %s\n", nuevoCliente.id);
 
 			break;
