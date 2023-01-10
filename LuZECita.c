@@ -754,7 +754,7 @@ void finalizarPrograma (int signal) {
 	nSolicitudesDomiciliarias = 0;
 
 	//A cada cliente se le cambia la flag de solicitud a 0 y espera a que termine de ser atendido para finalizar los hilos de los trabajadores
-	for (int i = 0; i < arrayClientes[MAX_CLIENTES]; i++) {
+	for (int i = 0; i < nClientes; i++) {
 		arrayClientes[i].solicitud = 0;
 		while (arrayClientes[i].atendido == 1) {
 			sleep(2);
