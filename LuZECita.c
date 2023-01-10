@@ -149,8 +149,11 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 void *accionesCliente (void* nuevoCliente) {
 	//Esto creo que no funcione, probar otra manera de castear
 	//int aCliente = *(int *)nuevoCliente ??
-	//int aCliente = *(intptr_t *)nuevoCliente <-- Este creo que no falla
+	//int aCliente = *(intptr_t *)nuevoCliente <-- Este creo que no falla y sería solo trabajar con aCliente
 	(int *) nuevoCliente;
+	
+	//int aCliente = *(intptr_t *)nuevoCliente
+	//arrayClientes[aCliente].id <-- Por ejemplo, creo que esto es la solución
 
 	/*	
 	Hay que cambiar los nuevoCliente.tipo, etc. por arrayClientes[(nuevoCliente)].atendido, etc.
@@ -162,54 +165,59 @@ void *accionesCliente (void* nuevoCliente) {
 	writeLogMessage(arrayClientes[(nuevoCliente)]id, arrayClientes[(nuevoCliente)].tipo); //Escribe el id y tipo del cliente
 	pthread_mutex_unlock(&semaforoFichero);
 
-	/*Comprobar si el cliente está atendido - Comprobar que no lo está*/
-	pthread_mutex_lock(&semaforoColaClientes);
-
 	do {
-		int comportamiento = calculaAleatorios(1, 100);
+		/*Comprobar si el cliente está siendo atendido*/
+		pthread_mutex_lock(&semaforoColaClientes);
+		if (arrayClientes[(nuevoCliente)].atendido == 0) {
+			printf("El cliente aún no ha sido atendido...\n");
+		}
+		pthread_mutex_unlock(&semaforoColaClientes);
 
-		if (comportamiento <= 10) { //Un 10% encuentra la app dificil y se va
+		int comportamiento = calculaAleatorios(1, 100);
+		
+		//Un 10% encuentra la app dificil y se va
+		if (comportamiento <= 10) {
 			clienteFuera(arrayClientes[(nuevoCliente)].id, appDificil); //Se escribe en el log
 
-			//Liberar espacio en la cola de clientes
-			liberaEspacioClientes(arrayClientes[(nuevoCliente)].tipo); //Funcíón que resta un cliente de nClientes y nClientes(tipo) cuando este se va
-
-			//Libera un hueco en el array de clientes
+			//Libera el espacio en el array de clientes
+			pthread_mutex_lock(&semaforoColaClientes);
 			borrarCliente((int )nuevoCliente); //Función que borra al cliente del arrayClientes
+			printf("El cliente ha decidido irse. Razón registrada en el fichero de logs.\n");
+			pthread_mutex_unlock(&semaforoColaClientes);
 				
-			//Libera el mutex y finaliza el hilo
-			pthread_mutex_unlock(&semaforoColaClientes); //Se libera el mutex antes de finalizar el hilo
+			//Finaliza el hilo
 			pthread_exit(NULL); //Se finaliza el hilo cliente
 		}
-		else if (comportamiento > 10 && comportamiento <= 30) { //Un 20% se cansa de esperar
+		//Un 20% se cansa de esperar
+		else if (comportamiento > 10 && comportamiento <= 30) {
 			sleep(8);
 
 			clienteFuera(arrayClientes[(nuevoCliente)].id, muchaEspera);
 
-			//Liberar espacio en la cola de clientes
-			liberaEspacioClientes(arrayClientes[(nuevoCliente)].tipo); //Funcíón que resta un cliente de nClientes y nClientes(tipo) cuando este se va
-
-			//Libera un hueco en el array de clientes
+			//Libera el espacio en el array de clientes
+			pthread_mutex_lock(&semaforoColaClientes);
 			borrarCliente((int )nuevoCliente); //Función que borra al cliente del arrayClientes
-
-			//Libera el mutex y finaliza el hilo
+			printf("El cliente ha decidido irse. Razón registrada en el fichero de logs.\n");
 			pthread_mutex_unlock(&semaforoColaClientes);
-			pthread_exit(NULL);
+				
+			//Finaliza el hilo
+			pthread_exit(NULL); //Se finaliza el hilo cliente
 		}
-		else if (comportamiento > 30 && comportamiento <= 35) { //Un 5% del restante pierde la conexión a internet
+		//Un 5% del restante pierde la conexión a internet
+		else if (comportamiento > 30 && comportamiento <= 35) { 
 			clienteFuera(arrayClientes[(nuevoCliente)].id, noInternet);
 
-			//Liberar espacio en la cola de clientes (Antes o después dek unlock & exit??)
-			liberaEspacioClientes(arrayClientes[(nuevoCliente)].tipo);
-
-			//Libera un hueco en el array de clientes
+			//Libera el espacio en el array de clientes
+			pthread_mutex_lock(&semaforoColaClientes);
 			borrarCliente((int )nuevoCliente); //Función que borra al cliente del arrayClientes
-
-			//Libera el mutex y finaliza el hilo
+			printf("El cliente ha decidido irse. Razón registrada en el fichero de logs.\n");
 			pthread_mutex_unlock(&semaforoColaClientes);
-			pthread_exit(NULL);
+				
+			//Finaliza el hilo
+			pthread_exit(NULL); //Se finaliza el hilo cliente
 		}
-		else {//Si se queda duerme 2 segundos y vuelve a comprobar si se va o se queda
+		//Si se queda duerme 2 segundos y vuelve a comprobar si se va o se queda
+		else {
 			sleep(2);
 		}
 
@@ -217,6 +225,11 @@ void *accionesCliente (void* nuevoCliente) {
 
 	/*Cliente siendo atendido, comprueba cada 2 segundos que la atención haya terminado*/
 	while (arrayClientes[(nuevoCliente)].atendido == 1){
+
+		pthread_mutex_lock(&semaforoColaClientes);
+		printf("Cliente siendo atendido. Esperando finalización...\n");
+		pthread_mutex_unlock(&semaforoColaClientes);
+
 		sleep(2);
 	}
 
@@ -229,14 +242,23 @@ void *accionesCliente (void* nuevoCliente) {
 	/*Cliente de tipo red, que ya ha sido atendido y que ha solicitado atención domiciliaria*/
 	if (arrayClientes[(nuevoCliente)].tipo == "Red" && arrayClientes[(nuevoCliente)].atendido == 2 && arrayClientes[(nuevoCliente)].solicitud == 2) {
 		 
-  	    pthread_mutex_lock(&semaforoSolicitudes);
-  	     
-		//Comprueba el número de solicitudes pendientes
 		do {
+			//Comprueba el número de solicitudes pendientes
+			pthread_mutex_lock(&semaforoSolicitudes);
+			if (nSolicitudesDomiciliarias < 4) {
+				printf("Actualmente hay %d solicitudes para atencion domiciliaria.\n", nSolicitudesDomiciliarias);
+				pthread_mutex_unlock(&semaforoSolicitudes);
+			} 
+			else {
+				sleep(3); //Si hay 4 o más solicitudes duerme 3 segundos y vuelve al inicio
+			}
+
 			//Si es menor de 4 se incrementa
+			pthread_mutex_lock(&semaforoSolicitudes);
 			nSolicitudesDomiciliarias++; 
+			pthread_mutex_unlock(&semaforoSolicitudes);
   	    	 
-  	    	//Se escribe en el log que el cliente quiere atención
+  	    	//Se escribe en el log que el cliente espera para ser atendido
   	    	pthread_mutex_lock(&semaforoFichero);
   	    	writeLogMessage(arrayClientes[(nuevoCliente)].id, esperaAtencion);
   	    	pthread_mutex_unlock(&semaforoFichero);
@@ -248,34 +270,37 @@ void *accionesCliente (void* nuevoCliente) {
 
 			//Si hay 4 solicitudes (tras incrementar)
 			if (nSolicitudesDomiciliarias == 4) {
-
 				//El cuarto en solicitad envía la señal al técnico de que ya puede salir de viaje
+				pthread_mutex_lock(&semaforoSolicitudes); //<--- LOCK
+				printf("Hay 4 solicitudes de atencion domiciliaria. Avisando al técnico para que comience la atención...\n");
 				pthread_cond_signal(&condicionSaleViaje);
 
 				//Se bloquea hasta que el técnico ponga solicitud a 0, es decir, el cliente ya ha recibido la atención domiciliaria
-				//Cuando recibe la señal de que ha terminado el viaje semaforoSolicitudes se desbloque, no hace falta mutex_unlock
-				pthread_cond_wait(&condicionTerminaViaje, &semaforoSolicitudes);
+				//Cuando recibe la señal de que ha terminado el viaje, semaforoSolicitudes se desbloquea, no hace falta mutex_unlock
+				pthread_cond_wait(&condicionTerminaViaje, &semaforoSolicitudes); //<--- UNLOCK <--- ESTÁ ESPERANDO A QUE EL TECNICODOMICILIARIO ENVÍE pthread_cond_signal(&condicionTerminaViaje) cuando ha terminado de atenderlo y vuelve a poner la solicitud a 0
   	    		 
 				//Se escribe en el log que la atencion ha finalizado
   	   			pthread_mutex_lock(&semaforoFichero);
   	   			writeLogMessage(arrayClientes[(nuevoCliente)].id, atencionFinaliza);
   	   			pthread_mutex_unlock(&semaforoFichero);
+				
+				/*La atención domiciliaria ha finalizado, el cliente sale del sistema*/
+				//Libera el espacio en el array de clientes
+				pthread_mutex_lock(&semaforoColaClientes);
+				borrarCliente((int )nuevoCliente); //Función que borra al cliente del arrayClientes
+				pthread_mutex_unlock(&semaforoColaClientes);
+					
+				//Finaliza el hilo
+				pthread_exit(NULL); //Se finaliza el hilo cliente
 			}
 
 		} while (nSolicitudesDomiciliarias < 4);
-
-		//:::::::::::::::::::::Falta el duerme 3 segundos y vuelve a 5.a (el do)
   	}
 	
 	/*Cliente atendido satisfactoriamente*/
-	//Liberar espacio en la cola de clientes (Antes o después dek unlock & exit??)
-	liberaEspacioClientes(arrayClientes[(nuevoCliente)].tipo);
-	
-	//Libera un hueco en el array de clientes
-	//No estoy seguro de si es esto, arrayClientes o nuevoCliente simplemente
+	//Libera el espacio en el array de clientes
+	pthread_mutex_lock(&semaforoColaClientes);
 	borrarCliente((int )nuevoCliente); //Función que borra al cliente del arrayClientes
-	
-	//Libera el mutex y finaliza el hilo
 	pthread_mutex_unlock(&semaforoColaClientes);
 
 	//Escribe en el log que el cliente ha sido atendido y se va
@@ -427,10 +452,15 @@ void finalizarPrograma (int signal) {
 		Hilos tienen que terminar de forma correcta, se libera memoria, etc.
 	*/
 
+	//Creo que no hace falta porque los clientes terminan el hilo al ser atendidos, y los trabajadores esperan a atender hasta que el usuario finalice el programa
+	//pthread_join();
+	//pthread_mutex_destroy();
+
 	/* LIBERACIÓN DE MEMORIA */
 	free(arrayHilosClientes);
 	free(arrayClientes);
 	free(arrayClientesSolicitudes);
+	//Puede que si sea necesario liberar memoria de los char* cuando se inicializan las estructuras en el main, no estoy seguro, depende de si da fallo en ejecución
 
 	printf("\nAdiós!\n");
 
@@ -505,20 +535,11 @@ void writeLogMessage(char *id, char *msg) {
 }
 
 /*Función que escribe en el log cuando un cliente se va antes de ser atendido*/
+//Cambiar nombre a logClienteFuera para que se entienda mejor en otras funciones
 void clienteFuera(char *id, char *razon) {
 	pthread_mutex_lock(&semaforoFichero);
 	writeLogMessage(id, razon); //Escribe el id del cliente y el char "appDificil" 
 	pthread_mutex_unlock(&semaforoFichero);
-}
-
-/*Función que decrementa el número de clientes total y del tipo*/
-void liberaEspacioClientes(char *tipoCliente) {
-	if (tipoCliente == "App") {
-		nClientesApp--;	
-	} else {
-		nClientesRed--;
-	}
-	nClientes--;
 }
 
 /*Función que elimina un cliente del array de clientes*/
@@ -530,6 +551,8 @@ void borrarCliente (int posicionCliente) {
 
 	struct cliente structVacia; //Se declara un cliente vacío
 	arrayClientes[nClientes - 1] = structVacia; //El cliente pasa a estar vació (todo a 0)
+
+	nClientes--;
 }
 
 /*Función que calcula números aleatorios*/
@@ -695,17 +718,13 @@ int main(int argc, char* argv[]) {
 	pthread_create(&responsable1, NULL, accionesTecnico, (void *) responsable_1);
 	pthread_create(&responsable2, NULL, accionesTecnico, (void *) responsable_2);
 	pthread_create(&encargado, NULL, accionesEncargado, (void *) encargado_);
-	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, (void *);/*argumentos necesarios para la ejecución del hilo, ningún trabajador en particular*/);
+	pthread_create(&atencionDomiciliaria, NULL, accionesTecnicoDomiciliario, NULL);/*Este hilo no lo ejecuta ningún trabajador en particular*/
 
 	/* ESPERAR POR SEÑALES INFINITAMENTE */
 	while(1) {
 		pause();
 	}
 
-	//Creo que no hace falta porque los clientes terminan el hilo al ser atendidos, y los trabajadores esperan a atender hasta que el usuario finalice el programa
-	//Entodo caso deberían de estar en finalizaPrograma
-	//pthread_join();
-	//pthread_mutex_destroy();
 
 	return 0;
 }
