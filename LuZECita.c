@@ -22,6 +22,8 @@
 
 /*Mensajes de log*/
 //Mensajes al principio del log de que comienza la atención a los clientes
+char *nombrePrograma = "    LuZECita";
+char *iniciaPrograma = "COMIENZA LA ATENCIÓN DE LOS CLIENTES";
 char *entrada = "Hora de entrada al sistema.";
 char *appDificil = "El cliente se ha ido porque encuentra la aplicación difícil.";
 char *muchaEspera = "El cliente se ha ido porque se ha cansado de esperar.";
@@ -422,6 +424,14 @@ void accionesTecnicoDomiciliario(){
 void finalizarPrograma (int signal) {
 
 	//Antes de que finalice se debe terminar de atender a todos los clientes en cola
+	/*
+		Hilos tienen que terminar de forma correcta, se libera memoria, etc.
+	*/
+
+	/* LIBERACIÓN DE MEMORIA */
+	free(arrayHilosClientes);
+	free(arrayClientes);
+	free(arrayClientesSolicitudes);
 
 	printf("\nAdiós!\n");
 
@@ -481,6 +491,20 @@ void atenderClienteApp(){
 
 /****************************************** FUNCIONES AUXILIARES ******************************************/
 
+/*Función que escribe los mensajes en log*/
+void writeLogMessage(char *id, char *msg) {
+	//Se calcula la hora actual
+	time_t now = time(0);
+	struct tm *tlocal = localtime(&now);
+	char stnow[25];
+	strftime(stnow, 25, "%d/%m/%y  %H:%M:%S", tlocal);
+
+	//Escribimos en el log
+	logFile = fopen("registroTiempos.log", "a");
+	fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
+	fclose(logFile);
+}
+
 /*Función que escribe en el log cuando un cliente se va antes de ser atendido*/
 void clienteFuera(char *id, char *razon) {
 	pthread_mutex_lock(&semaforoFichero);
@@ -516,20 +540,6 @@ int calculaAleatorios(int min, int max) {
 	return rand() % (max - min + 1) + min;
 }
 
-/*Función que escribe los mensajes en log*/
-void writeLogMessage(char *id, char *msg) {
-	//Se calcula la hora actual
-	time_t now = time(0);
-	struct tm *tlocal = localtime(&now);
-	char stnow[25];
-	strftime(stnow, 25, "%d/%m/%y  %H:%M:%S", tlocal);
-
-	//Escribimos en el log
-	logFile = fopen("registroTiempos.log", "a");
-	fprintf(logFile, "[%s] %s: %s\n", stnow, id, msg);
-	fclose(logFile);
-}
-
 
 int main(int argc, char* argv[]) {
 	
@@ -540,9 +550,6 @@ int main(int argc, char* argv[]) {
 	arrayClientes = (struct cliente *) malloc (nClientes * sizeOf(struct cliente *)); //array del total de clientes
 	arrayClientesSolicitudes = (struct cliente *) malloc (4 * sizeOf(struct cliente *)); // array de clientes con solicitudes (4 para que salga el responsable)
 	
-	/*Mostramos por pantalla el PID del programa para enviar las señales*/
-	printf("\nPID: %s\n", getpid());
-
 	/* SEÑALES */
 	//Cliente App
 	if (signal(SIGUSR1, crearNuevoCliente) == SIG_ERR) {
@@ -671,7 +678,14 @@ int main(int argc, char* argv[]) {
 	logFile = fopen("registroTiempos.log", "wt"); //Opcion "wt" = Cada vez que se ejecuta el programa, si el archivo ya existe se elimina su contenido para empezar de cero
 	fclose(logFile);
 
-	//writeLogMessage con un mensaje de que se inicia el programa
+	/*Explicación por pantalla del funcionamiento del programa*/
+	printf("****************************** FUNCIONAMIENTO DEL PROGRAMA ******************************\n\n");
+	printf("Introduzca 'kill -10 %d' en otra terminal para añadir un cliende de la app.\n", getpid());
+	printf("Introduzca 'kill -12 %d' en otra terminal para añadir un cliende de reparación de red.\n", getpid());
+	printf("Introduzca 'kill -2 %d' en otra terminal para finalizar el programa.\n", getpid());
+
+	/*Escribe al principio del archivo de log que se inicia la atención a los clientes*/
+	writeLogMessage(nombrePrograma, iniciaPrograma); 
 
 	//::::::::::::::::::::::::::::Añadir un mutex a la creación de hilos? No sé si hace falta
 
@@ -689,13 +703,10 @@ int main(int argc, char* argv[]) {
 		pause();
 	}
 
+	//Creo que no hace falta porque los clientes terminan el hilo al ser atendidos, y los trabajadores esperan a atender hasta que el usuario finalice el programa
+	//Entodo caso deberían de estar en finalizaPrograma
 	//pthread_join();
 	//pthread_mutex_destroy();
-
-	/* LIBERACIÓN DE MEMORIA */
-	free(arrayHilosClientes);
-	free(arrayClientes);
-	free(arrayClientesSolicitudes);
 
 	return 0;
 }
