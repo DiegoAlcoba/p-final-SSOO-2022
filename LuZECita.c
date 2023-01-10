@@ -151,18 +151,10 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 }
 
 void *accionesCliente (void* nuevoCliente) {
-	//Esto creo que no funcione, probar otra manera de castear
 	//int aCliente = *(int *)nuevoCliente ??
 	int aCliente = *(intptr_t *)nuevoCliente; //<-- Este creo que no falla y sería solo trabajar con aCliente
 	//(int *) nuevoCliente;
 	
-	//int aCliente = *(intptr_t *)nuevoCliente
-	//arrayClientes[aCliente].id <-- Por ejemplo, creo que esto es la solución
-
-	/*	
-	Hay que cambiar los nuevoCliente.tipo, etc. por arrayClientes[aCliente].atendido, etc.
-	*/
-
 	/*Guardar en log la hora de entrada al sistema y tipo de cliente*/
 	pthread_mutex_lock(&semaforoFichero);
 	writeLogMessage(arrayClientes[aCliente].id, entrada); //Escribe el id del cliente y el char "entrada" (variable global)
@@ -236,12 +228,6 @@ void *accionesCliente (void* nuevoCliente) {
 
 		sleep(2);
 	}
-
-	/**************************************************************************************************/
-	//int atendido;	//0 no atendido, 1 está siendo atendido, 2 ha sido atendido
-	//int solicitud;	//0 = no solicitud, 1 = esperando la atención domiciliaria, 2 = ha solicitado atención domiciliaria
-	//pthread_cond_t condicionSaleViaje; //Condición por la que el técnico sale de viaje
-	//pthread_cond_t condicionTerminaViaje; //Condición por la que el técnico avisa de que ha terminado de atender a los 4 de atención domiciliaria
 
 	/*Cliente de tipo red, que ya ha sido atendido y que ha solicitado atención domiciliaria*/
 	if (arrayClientes[aCliente].tipo == "Red" && arrayClientes[aCliente].atendido == 2 && arrayClientes[aCliente].solicitud == 2) {
@@ -600,14 +586,6 @@ void finalizarPrograma (int signal) {
 
 	exit(0);
 }
-
-
-/******************************************************** SIGO SIN SABER QUÉ ES ESTO ********************************************************/
-/********************************************************************************************************************************************/
-
-
-/*************************************************************************************************************************************************/
-
 
 /****************************************** FUNCIONES AUXILIARES ******************************************/
 int mayorPrioridad(){
