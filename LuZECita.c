@@ -95,42 +95,47 @@ FILE *logFile;
 /*Crea un nuevo cliente cuando recibe una de las dos señales definidas para ello*/
 void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la estructura del cliente es una variable global
 	struct cliente nuevoCliente;
-	bool espacioDisponible=false;
+	bool espacioDisponible=false;		//creamos una variable booleana inicializada a false
 
-	pthread_mutex_lock(&semaforoColaClientes);
-	if(nClientes<MAX_CLIENTES){
+	pthread_mutex_lock(&semaforoColaClientes);		//bloqueamos el acceso para que otros hilos no puedan entrar en la seccion critica
+	if(nClientes<MAX_CLIENTES){		//miramos que el contador de clientes no sea mayor que el maximo de clientes
     	espacioDisponible=true;
 	}
-	pthread_mutex_unlock(&semaforoColaClientes);
+	pthread_mutex_unlock(&semaforoColaClientes);		//desbloqueamos el acceso para que otros hilos puedan entrar en la seccion critica
 
-	if(espacioDisponible==true){
+	if(espacioDisponible==true){		
 		pthread_mutex_lock(&semaforoColaClientes);
 		nClientes++;	//aumentamos el contador de clientes totales
+		pthread_mutex_unlock(&semaforoColaClientes);
 
 		char numeroId[2];		//creamos numeroId
 		printf("Hay un nuevo cliente\n");
 		
 		//Vemos si el cliente es de la app o red
-		switch(signum){
-			case SIGUSR1:
-				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){
+		switch(signum){		//dependiendo de la señal que recibamos sera un tipo de cliente u otro
+			case SIGUSR1:		//cliente de app
+				pthread_mutex_lock(&semaforoColaClientes);
+				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){		//si la señal SIGUSR1 nos da SIG_ERR se ha producido un error
 					perror("Error en signal");
 					exit(-1);
 				}
 			
 				nClientesApp++;				//aumentamos el contador de clientes de app
 
-				sprintf(numeroId, "%d", nClientesApp);
+				sprintf(numeroId, "%d", nClientesApp);		
 
-				nuevoCliente.id=strcat("cliapp_", numeroId);
+				nuevoCliente.id=strcat("cliapp_", numeroId);		//concatenamos el numero de id a el nombre de cliente
+				nuevoCliente.atendido=0;		//todavia no ha sido atendido
 				nuevoCliente.tipo="App";	//cliente de la app
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
+				pthread_mutex_unlock(&semaforoColaClientes);
 
 				printf("El cliente es %s\n", nuevoCliente.id);
 				
 			break;
 
-			case SIGUSR2:
+			case SIGUSR2:		//cliente de red
+				pthread_mutex_lock(&semaforoColaClientes);
 				if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){
 					perror("Error en signal");
 					exit(-1);
@@ -140,19 +145,24 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 				sprintf(numeroId, "%d", nClientesRed);
 				
 				nuevoCliente.id=strcat("clired_", numeroId);
+				nuevoCliente.atendido=0;
 				nuevoCliente.tipo="Red";	//cliente de red
+				nuevoCliente.solicitud=0;		//todavia no ha hecho solicitud domiciliaria
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);
+				pthread_mutex_unlock(&semaforoColaClientes);
 
 				printf("El cliente es %s\n", nuevoCliente.id);
 
 			break;
 
 		}
+		pthread_mutex_lock(&semaforoColaClientes);
 		arrayClientes[nClientes-1]=nuevoCliente; //asigna la estructura nuevoCliente al ultimo elemento de arrayClientes
-		pthread_t hiloClientes; //hiloClientes es una variable de tipo pthread_t que se ha declarado para almacenar el identificador de un hilo específico
+		pthread_t hiloClientes; // declaramos hiloClientes para almacenar el identificador de un hilo específico
 		arrayHilosClientes[nClientes-1]=hiloClientes; //asigna la estructura hiloClientes al ultimo elemento de arrayHilosClientes
-		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)(nClientes-1)); //pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada. El hilo se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
-		pthread_mutex_unlock(&semaforoColaClientes);		//libera el hilo del mutex y permite a otros otros hilos poder entrar en la cola de cliente y asi en la seccion critica
+		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)(nClientes-1)); //pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada, se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
+		pthread_mutex_unlock(&semaforoColaClientes);
+		
 		printf("Se ha creado un nuevo cliente con ID %s y tipo %s\n", nuevoCliente.id, nuevoCliente.tipo);
 
 	}else{
@@ -573,139 +583,177 @@ void *accionesTecnico(void *arg){
 // }
 
 void *accionesEncargado(void *arg){
+	struct trabajador tecnico1;
+	struct trabajador tecnico2;
+	struct trabajador responsable1;
+	struct trabajador responsable2;
+	
 	int prio=0;
 	int prio2=0;
 	bool atendiendo=true; //bandera que indica si está atendiendo a un cliente o no
 	
+
 	while(atendiendo){
-		if(nClientesRed==0){
-			if(nClientesApp==0){
-				sleep(3);
+		if(nClientesRed==0){		//no hay clientes de red
+			if(nClientesApp==0){		//no hay clientes de red ni de app
+				sleep(3);		//espera 3 segundos
 			}
 			else{
-				pthread_mutex_lock(&semaforoColaClientes);
-				prio=mayorPrioridad();
-				arrayClientes[prio].atendido=1;
-				pthread_mutex_unlock(&semaforoColaClientes);
+				while(tecnico1.libre==1){		//indicamos que el tecnico 1 esta ocupado
+					while(tecnico2.libre==1){		//indicamos que el tecnico 2 esta ocupado
+						pthread_mutex_lock(&semaforoColaClientes);
+						prio=mayorPrioridad();		//utilizando la funcion auxiliar "mayorPrioridad" calculas el cliente con mayor prioridad, o en el caso de teener todos la misma, el que mas tiempo ha esperado
+						arrayClientes[prio].atendido=1;		//ponemos el atendido a 1, que indica que esta siendo atendido
+						pthread_mutex_unlock(&semaforoColaClientes);
 
-				int tempAten=calculaAleatorios(1, 100);
+						int tempAten=calculaAleatorios(1, 100);		//usamos la funcion "calculaAleatorios" conseguir un numero aleatorio del 1 al 100
 
-				if(tempAten<81){
-					int tiempo=calculaAleatorios(1,4);
+						if(tempAten<81){		//si el numero es del 1 al 80
+							int tiempo=calculaAleatorios(1,4);		//calculamos aleatorio del 1 al 4 incluidos
 
-					pthread_mutex_lock(&semaforoFichero);
-					writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio].id);
-					pthread_mutex_unlock(&semaforoFichero);
+							pthread_mutex_lock(&semaforoFichero);		//bloqueamos el acceso a fichero
+							writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio].id);		//escribimos el mensaje de que empieza a atender en el log
+							pthread_mutex_unlock(&semaforoFichero);		//desbloqueamos el acceso a fichero
 
-					sleep(tiempo);
+							sleep(tiempo);		//dormimos el tiempo que nos dio el aleatorio
 
-					pthread_mutex_lock(&semaforoFichero);
-					writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio].id);
-					pthread_mutex_unlock(&semaforoFichero);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio].id);	//escribimos el mensaje de que el cliente ha acabado
+							pthread_mutex_unlock(&semaforoFichero);
 
-					pthread_mutex_lock(&semaforoFichero);
-					writeLogMessage(todoEnRegla, arrayClientes[prio].id);
-					pthread_mutex_unlock(&semaforoFichero);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(todoEnRegla, arrayClientes[prio].id);		//rescribimos el mensaje de que el cliente tiene todo en regla
+							pthread_mutex_unlock(&semaforoFichero);
 
-				}else if(tempAten>80&&tempAten<91){
-					int tiempo=calculaAleatorios(2,6);
+							pthread_mutex_lock(&semaforoColaClientes);
+							arrayClientes[prio].atendido=2;		//cambiamos el estado a ya atendido
+							pthread_mutex_unlock(&semaforoColaClientes);
 
-					pthread_mutex_lock(&semaforoFichero);
-					writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio].id);
-					pthread_mutex_unlock(&semaforoFichero);
+						}else if(tempAten>80&&tempAten<91){		//si el numero esta entre el 81 y 90 incluidos
+							int tiempo=calculaAleatorios(2,6);		//usamos la funcion "calculaAleatorios" conseguir un numero aleatorio del 2 al 6 incluidos
 
-					sleep(tiempo);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
-					pthread_mutex_lock(&semaforoFichero);
-					writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio].id);
-					pthread_mutex_unlock(&semaforoFichero);
+							sleep(tiempo);
 
-					pthread_mutex_lock(&semaforoFichero);
-					writeLogMessage(malIdentificados, arrayClientes[prio].id);
-					pthread_mutex_unlock(&semaforoFichero);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(malIdentificados, arrayClientes[prio].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
-				}else{
-					int tiempo=calculaAleatorios(1,2);
+							pthread_mutex_lock(&semaforoColaClientes);
+							arrayClientes[prio].atendido=2;
+							pthread_mutex_unlock(&semaforoColaClientes);
 
-					pthread_mutex_lock(&semaforoFichero);
-					writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio].id);
-					pthread_mutex_unlock(&semaforoFichero);
+						}else{		//si el numero esta entre el 91 y 100
+							int tiempo=calculaAleatorios(1,2);		//usamos la funcion "calculaAleatorios" conseguir un numero aleatorio entre 1 y 2
 
-					sleep(tiempo);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
-					pthread_mutex_lock(&semaforoFichero);
-					writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio].id);
-					pthread_mutex_unlock(&semaforoFichero);
+							sleep(tiempo);
 
-					pthread_mutex_lock(&semaforoFichero);
-					writeLogMessage(confusionCompañia, arrayClientes[prio].id);
-					pthread_mutex_unlock(&semaforoFichero);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio].id);
+							pthread_mutex_unlock(&semaforoFichero);
+
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(confusionCompañia, arrayClientes[prio].id);
+							pthread_mutex_unlock(&semaforoFichero);
+
+							pthread_mutex_lock(&semaforoColaClientes);
+							arrayClientes[prio].atendido=2;
+							pthread_mutex_unlock(&semaforoColaClientes);
+						}
+					}
 				}
 			}
 		}
 		else{
-			pthread_mutex_lock(&semaforoColaClientes);
-			prio2=mayorPrioridadRed();
-			arrayClientes[prio2].atendido=1;
-			pthread_mutex_unlock(&semaforoColaClientes);
+			if(nClientesApp==0){		//si hay clientes de red pero no de app
+				while(responsable1.libre==1){		//indicamos que el responsable 1 esta ocupado
+					while(responsable2.libre==1){		//indicamos que el responsable 2 esta ocupado
+						pthread_mutex_lock(&semaforoColaClientes);
+						prio2=mayorPrioridadRed();
+						arrayClientes[prio2].atendido=1;
+						pthread_mutex_unlock(&semaforoColaClientes);
 
-			int tempAten=calculaAleatorios(1, 100);
+						int tempAten=calculaAleatorios(1, 100);
 
-			if(tempAten<81){
-				int tiempo=calculaAleatorios(1,4);
+						if(tempAten<81){
+							int tiempo=calculaAleatorios(1,4);
 
-				pthread_mutex_lock(&semaforoFichero);
-				writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio2].id);
-				pthread_mutex_unlock(&semaforoFichero);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
-				sleep(tiempo);
+							sleep(tiempo);
 
-				pthread_mutex_lock(&semaforoFichero);
-				writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio2].id);
-				pthread_mutex_unlock(&semaforoFichero);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
-				pthread_mutex_lock(&semaforoFichero);
-				writeLogMessage(todoEnRegla, arrayClientes[prio2].id);
-				pthread_mutex_unlock(&semaforoFichero);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(todoEnRegla, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
-			}else if(tempAten>80&&tempAten<91){
-				int tiempo=calculaAleatorios(2,6);
+							pthread_mutex_lock(&semaforoColaClientes);
+							arrayClientes[prio2].atendido=2;
+							pthread_mutex_unlock(&semaforoColaClientes);
 
-				pthread_mutex_lock(&semaforoFichero);
-				writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio2].id);
-				pthread_mutex_unlock(&semaforoFichero);
+						}else if(tempAten>80&&tempAten<91){
+							int tiempo=calculaAleatorios(2,6);
 
-				sleep(tiempo);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
-				pthread_mutex_lock(&semaforoFichero);
-				writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio2].id);
-				pthread_mutex_unlock(&semaforoFichero);
+							sleep(tiempo);
 
-				pthread_mutex_lock(&semaforoFichero);
-				writeLogMessage(malIdentificados, arrayClientes[prio2].id);
-				pthread_mutex_unlock(&semaforoFichero);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(malIdentificados, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
-			}else{
-				int tiempo=calculaAleatorios(1,2);
+							pthread_mutex_lock(&semaforoColaClientes);
+							arrayClientes[prio2].atendido=2;
+							pthread_mutex_unlock(&semaforoColaClientes);
 
-				pthread_mutex_lock(&semaforoFichero);
-				writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio2].id);
-				pthread_mutex_unlock(&semaforoFichero);
+						}else{
+							int tiempo=calculaAleatorios(1,2);
 
-				sleep(tiempo);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteEmpiezaAtendido, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
-				pthread_mutex_lock(&semaforoFichero);
-				writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio2].id);
-				pthread_mutex_unlock(&semaforoFichero);
+							sleep(tiempo);
 
-				pthread_mutex_lock(&semaforoFichero);
-				writeLogMessage(confusionCompañia, arrayClientes[prio2].id);
-				pthread_mutex_unlock(&semaforoFichero);
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteFinalizaAtencion, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
+
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(confusionCompañia, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
+
+							pthread_mutex_lock(&semaforoColaClientes);
+							arrayClientes[prio2].atendido=2;
+							pthread_mutex_unlock(&semaforoColaClientes);
+						}
+					}
+				}
 			}
 		}
-	}
+	}		
 }
 
 void accionesTecnicoDomiciliario(){
