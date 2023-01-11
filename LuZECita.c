@@ -968,19 +968,19 @@ void *accionesTecnicoDomiciliario(void *arg){
 	while(1){
 		//Compruebo el numero de solicitudes si estas son menores que 4 se queda bloqueado hasta que lo sean 4
 		while(nSolicitudesDomiciliarias<4){
-			pthread_cond_wait(&condicionSaleViaje);
+			pthread_cond_wait(&condicionSaleViaje,&semaforoSolicitudes);
 		}
 		//Bucle for que recorre el arraySolicitudes con el fin de atender todos
 		for(int i=0; i<nSolicitudesDomiciliarias; i++ ){
 			//Semaforo del fichero ya que le indicamos que se comienza la atencion
 			pthread_mutex_lock(&semaforoFichero);
-			writeLogMessage(atencionDomiciliariaText, arrayClientesSolicitudes[tiempoAtencion].id);
+			writeLogMessage(atencionDomiciliariaText, arrayClientesSolicitudes[i].id);
 			pthread_mutex_unlock(&semaforoFichero);
 			//Dormimos uno para cada peticion
 			sleep(1);
 			//Semaforo del fichero ya que le indicamos que se ha atendido una solicitud
 			pthread_mutex_lock(&semaforoFichero);
-			writeLogMessage(atencionDomiciliariaAtendido, arrayClientesSolicitudes[tiempoAtencion].id);
+			writeLogMessage(atencionDomiciliariaAtendido, arrayClientesSolicitudes[i].id);
 			pthread_mutex_unlock(&semaforoFichero);
 			//Semaforo de colaCleintes ya que vamos a cambiar el valor del flag
 			pthread_mutex_lock(&semaforoColaClientes);
@@ -995,7 +995,7 @@ void *accionesTecnicoDomiciliario(void *arg){
 			pthread_mutex_unlock(&semaforoSolicitudes);
 			//Semaforo de Fichero ya que se ha finalizado la atencion domiciliaria
 			pthread_mutex_lock(&semaforoFichero);
-			writeLogMessage(atencionDomiciliariaFin, arrayClientesSolicitudes[tiempoAtencion].id);
+			writeLogMessage(atencionDomiciliariaFin, arrayClientesSolicitudes[i].id);
 			pthread_mutex_unlock(&semaforoFichero);
 			//Se avisa que los que esperaban por la solicitud domiciliaria se finaliza
 			pthread_cond_signal(&condicionTerminaViaje);
