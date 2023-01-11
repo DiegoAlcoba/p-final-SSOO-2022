@@ -1140,8 +1140,8 @@ int calculaAleatorios(int min, int max) {
 int main(int argc, char* argv[]) {
 	
 	/* INICIALIZACIÓN DE RECURSOS */
-	arrayHilosClientes = (pthread_t *) malloc (nClientes * sizeof(struct cliente *)); //Array dinámico de hilos de clientes
-	arrayClientes = (struct cliente *) malloc (nClientes * sizeof(struct cliente *)); //array del total de clientes
+	arrayHilosClientes = (pthread_t *) malloc (MAX_CLIENTES * sizeof(struct cliente *)); //Array dinámico de hilos de clientes
+	arrayClientes = (struct cliente *) malloc (MAX_CLIENTES * sizeof(struct cliente *)); //array del total de clientes
 	arrayClientesSolicitudes = (struct cliente *) malloc (4 * sizeof(struct cliente *)); // array de clientes con solicitudes (4 para que salga el responsable)
 	
 	/* senyalES */
