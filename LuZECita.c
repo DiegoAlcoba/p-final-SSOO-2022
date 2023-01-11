@@ -36,7 +36,7 @@ char *clienteEmpiezaAtendido= "El cliente comienza a ser atendido.";
 char *clienteFinalizaAtencion= "El cliente finaliza la atencion.";
 char *todoEnRegla= "Se ha finalizado la atencion ya que el cliente tenia todo en regla";
 char *malIdentificados= "Se ha finalizado la atencion ya que el cliente estaba mal identificado";
-char *confusionCompañia= "Se ha finalizado la atencion ya que el cliente se ha confundido de compañia";
+char *confusionCompanyia= "Se ha finalizado la atencion ya que el cliente se ha confundido de companya";
 char *signalFinalizacion = "    SIGINT";
 char *finPrograma = "SE PROCEDE A LA FINALIZACION DEL PROGRAMA";
 char *atencionDomiciliariaText= "Se comienza con la accion domiciliaria del cliente";
@@ -92,8 +92,8 @@ FILE *logFile;
 
 /****************************************** HILOS Y FUNCIONES PRINCIPALES ******************************************/
 
-/*Crea un nuevo cliente cuando recibe una de las dos señales definidas para ello*/
-void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la estructura del cliente es una variable global
+/*Crea un nuevo cliente cuando recibe una de las dos senyales definidas para ello*/
+void crearNuevoCliente(int signum) { //Solo recibe como argumento la senyal, la estructura del cliente es una variable global
 	struct cliente nuevoCliente;
 	bool espacioDisponible=false;		//creamos una variable booleana inicializada a false
 
@@ -112,10 +112,10 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 		printf("Hay un nuevo cliente\n");
 		
 		//Vemos si el cliente es de la app o red
-		switch(signum){		//dependiendo de la señal que recibamos sera un tipo de cliente u otro
+		switch(signum){		//dependiendo de la senyal que recibamos sera un tipo de cliente u otro
 			case SIGUSR1:		//cliente de app
 				pthread_mutex_lock(&semaforoColaClientes);
-				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){		//si la señal SIGUSR1 nos da SIG_ERR se ha producido un error
+				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){		//si la senyal SIGUSR1 nos da SIG_ERR se ha producido un error
 					perror("Error en signal");
 					exit(-1);
 				}
@@ -280,13 +280,13 @@ void *accionesCliente (void* nuevoCliente) {
 
 			//Si hay 4 solicitudes (tras incrementar)
 			if (nSolicitudesDomiciliarias == 4) {
-				//El cuarto en solicitad envía la señal al técnico de que ya puede salir de viaje
+				//El cuarto en solicitad envía la senyal al técnico de que ya puede salir de viaje
 				pthread_mutex_lock(&semaforoSolicitudes); //<--- LOCK
 				printf("Hay 4 solicitudes de atencion domiciliaria. Avisando al técnico para que comience la atención...\n");
 				pthread_cond_signal(&condicionSaleViaje);
 
 				//Se bloquea hasta que el técnico ponga solicitud a 0, es decir, el cliente ya ha recibido la atención domiciliaria
-				//Cuando recibe la señal de que ha terminado el viaje, semaforoSolicitudes se desbloquea, no hace falta mutex_unlock
+				//Cuando recibe la senyal de que ha terminado el viaje, semaforoSolicitudes se desbloquea, no hace falta mutex_unlock
 				pthread_cond_wait(&condicionTerminaViaje, &semaforoSolicitudes); //<--- UNLOCK <--- ESTÁ ESPERANDO A QUE EL TECNICODOMICILIARIO ENVÍE pthread_cond_signal(&condicionTerminaViaje) cuando ha terminado de atenderlo y vuelve a poner la solicitud a 0
   	    		 
 				//Se escribe en el log que la atencion ha finalizado
@@ -394,7 +394,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de companya
 					}else{
 						//Calculo el timepo que tiene que dormir
 						tiempo=calculaAleatorios(1,2);
@@ -410,7 +410,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_unlock(&semaforoFichero);
 						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
-						writeLogMessage(confusionCompañia, arrayClientes[tiempoAtencion].id);
+						writeLogMessage(confusionCompanyia, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
 					}
 					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
@@ -425,7 +425,7 @@ void *accionesTecnico(void *arg){
 					}
 				//Si el tecnico1 no esta libre llama al tecnico2
 				}else if(tecnico2.libre==0){
-					//Semaforo cola clientes en el que señalamos que cleinte se va atender
+					//Semaforo cola clientes en el que senyalamos que cleinte se va atender
 					pthread_mutex_lock(&semaforoColaClientes);
 					tiempoAtencion=mayorPrioridad();
 					pthread_mutex_unlock(&semaforoColaClientes);
@@ -473,7 +473,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de companya
 					}else{
 						//Calculo el timepo que tiene que dormir
 						tiempo=calculaAleatorios(1,2);
@@ -489,7 +489,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_unlock(&semaforoFichero);
 						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
-						writeLogMessage(confusionCompañia, arrayClientes[tiempoAtencion].id);
+						writeLogMessage(confusionCompanyia, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
 					}
 					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
@@ -578,7 +578,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de companya
 					}else{
 
 						//Calculo el timepo que tiene que dormir
@@ -595,7 +595,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_unlock(&semaforoFichero);
 						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
-						writeLogMessage(confusionCompañia, arrayClientes[tiempoAtencion].id);
+						writeLogMessage(confusionCompanyia, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
 					}
 					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
@@ -679,7 +679,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de companya
 					}else{
 
 						//Calculo el timepo que tiene que dormir
@@ -696,7 +696,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_unlock(&semaforoFichero);
 						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
-						writeLogMessage(confusionCompañia, arrayClientes[tiempoAtencion].id);
+						writeLogMessage(confusionCompanyia, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
 					}
 					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
@@ -798,7 +798,7 @@ void *accionesEncargado(void *arg){
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoFichero);
-							writeLogMessage(confusionCompañia, arrayClientes[prio].id);
+							writeLogMessage(confusionCompanyia, arrayClientes[prio].id);
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoColaClientes);
@@ -876,7 +876,7 @@ void *accionesEncargado(void *arg){
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoFichero);
-							writeLogMessage(confusionCompañia, arrayClientes[prio2].id);
+							writeLogMessage(confusionCompanyia, arrayClientes[prio2].id);
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoColaClientes);
@@ -934,7 +934,7 @@ void accionesTecnicoDomiciliario(void *ârg){
 
 }
 //:::::::::::::::::::::::: NO DEFINITIVA, HA SIDO A VOLEO ::::::::::::::::::::::::::::::::::::::::::::::
-/*Función que finaliza el programa al recibir la señal SIGINT*/
+/*Función que finaliza el programa al recibir la senyal SIGINT*/
 void finalizarPrograma (int signal) {
 
 	//Antes de que finalice se debe terminar de atender a todos los clientes en cola
@@ -942,7 +942,7 @@ void finalizarPrograma (int signal) {
 		Hilos tienen que terminar de forma correcta, se libera memoria, etc.
 	*/
 
-	printf("\nSe ha recibido la señal SIGINT. Procediendo a finalizar el programa...\n");
+	printf("\nSe ha recibido la senyal SIGINT. Procediendo a finalizar el programa...\n");
 
 	/*Se escribe en el log que se va a finalizar el programa*/
 	pthread_mutex_lock(&semaforoFichero);
@@ -1071,24 +1071,24 @@ int main(int argc, char* argv[]) {
 	arrayClientes = (struct cliente *) malloc (nClientes * sizeof(struct cliente *)); //array del total de clientes
 	arrayClientesSolicitudes = (struct cliente *) malloc (4 * sizeof(struct cliente *)); // array de clientes con solicitudes (4 para que salga el responsable)
 	
-	/* SEÑALES */
+	/* senyalES */
 	//Cliente App
 	if (signal(SIGUSR1, crearNuevoCliente) == SIG_ERR) {
-		perror("Error en la señal");
+		perror("Error en la senyal");
 
 		exit(-1);
 	}
 
 	//Cliente Red
 	if (signal(SIGUSR2, crearNuevoCliente) == SIG_ERR) {
-		perror("Error en la señal");
+		perror("Error en la senyal");
 
 		exit(-1);
 	}
 	
 	//Finalización del programa 
 	if (signal(SIGINT, finalizarPrograma) == SIG_ERR) {
-		perror("Error en la señal");
+		perror("Error en la senyal");
 
 		exit(-1);
 	}
@@ -1114,7 +1114,7 @@ int main(int argc, char* argv[]) {
 	//Lista de tipos de clientes
 	struct cliente *clienteApp;
 		clienteApp -> id = (char *) malloc (12 * sizeof(char));
-		clienteApp -> id = "cliapp_"; //Luego en cada cliente creado se le añade el número al final de la cadena de caracteres con ¿strcat? creo
+		clienteApp -> id = "cliapp_"; //Luego en cada cliente creado se le anyade el número al final de la cadena de caracteres con ¿strcat? creo
 		
 		clienteApp -> atendido = 0;
 
@@ -1126,7 +1126,7 @@ int main(int argc, char* argv[]) {
 
 	struct cliente *clienteRed ;
 		clienteRed  -> id = (char *) malloc (12 * sizeof(char));
-		clienteRed  -> id = "clired_"; //Luego en cada cliente creado se le añade el número al final de la cadena de caracteres con ¿strcat? creo
+		clienteRed  -> id = "clired_"; //Luego en cada cliente creado se le anyade el número al final de la cadena de caracteres con ¿strcat? creo
 		
 		clienteRed  -> atendido = 0;
 
@@ -1201,8 +1201,8 @@ int main(int argc, char* argv[]) {
 
 	/*Explicación por pantalla del funcionamiento del programa*/
 	printf("****************************** FUNCIONAMIENTO DEL PROGRAMA ******************************\n\n");
-	printf("Introduzca 'kill -10 %d' en otra terminal para añadir un cliende de la app.\n", getpid());
-	printf("Introduzca 'kill -12 %d' en otra terminal para añadir un cliende de reparación de red.\n", getpid());
+	printf("Introduzca 'kill -10 %d' en otra terminal para anyadir un cliende de la app.\n", getpid());
+	printf("Introduzca 'kill -12 %d' en otra terminal para anyadir un cliende de reparación de red.\n", getpid());
 	printf("Introduzca 'kill -2 %d' en otra terminal para finalizar el programa.\n", getpid());
 
 	/*Escribe al principio del archivo de log que se inicia la atención a los clientes*/
@@ -1217,7 +1217,7 @@ int main(int argc, char* argv[]) {
 	pthread_create(&encargado_, NULL, accionesEncargado, (void *) encargado);
 	pthread_create(&atencionDomiciliaria_, NULL, accionesTecnicoDomiciliario, NULL);/*Este hilo no lo ejecuta ningún trabajador en particular*/
 
-	/* ESPERAR POR SEÑALES INFINITAMENTE */
+	/* ESPERAR POR senyalES INFINITAMENTE */
 	while(1) {
 		pause();
 	}
