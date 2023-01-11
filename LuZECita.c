@@ -21,6 +21,20 @@
 #define NUM_RESPONSABLES 2
 #define NUM_ENCARGADOS 1
 
+/*Declaración de funciones*/
+int calculaAleatorios(int min, int max);
+void borrarCliente (int posicionCliente);
+void clienteFuera(char *id, char *razon);
+void writeLogMessage(char *id, char *msg); 
+int mayorPrioridadRed();
+int mayorPrioridad();
+void finalizarPrograma (int signal);
+void accionesTecnicoDomiciliario(void *arg);
+void *accionesEncargado(void *arg);
+void *accionesTecnico(void *arg);
+void *accionesCliente (void* nuevoCliente);
+void crearNuevoCliente(int signum);
+
 /*Mensajes de log*/
 //Mensajes al principio del log de que comienza la atención a los clientes
 char *nombrePrograma = "    LuZECita";
@@ -949,7 +963,7 @@ void *accionesEncargado(void *arg){
 
 
 /* Realiza las acciones de los tecnicos domiciliarios*/
-void accionesTecnicoDomiciliario(void *ârg){
+void *accionesTecnicoDomiciliario(void *arg){
 	//Bucle que nos ayuda a volver a ejecutarla
 	while(1){
 		//Compruebo el numero de solicitudes si estas son menores que 4 se queda bloqueado hasta que lo sean 4
