@@ -29,6 +29,7 @@ char *entrada = "Hora de entrada al sistema.";
 char *appDificil = "El cliente se ha ido porque encuentra la aplicación difícil.";
 char *muchaEspera = "El cliente se ha ido porque se ha cansado de esperar.";
 char *noInternet = "El cliente se ha ido porque ha perdido la conexión a internet.";
+char *solicitaAtencion = "El cliente ha solicitado atencion";
 char *esperaAtencion = "El cliente espera por la atención domiciliaria";
 char *atencionFinaliza = "La atención domiciliaria ha finalizado";
 char *clienteAtendido = "El cliente ha sido atendido correctamente y se va.";
@@ -36,7 +37,7 @@ char *clienteEmpiezaAtendido= "El cliente comienza a ser atendido.";
 char *clienteFinalizaAtencion= "El cliente finaliza la atencion.";
 char *todoEnRegla= "Se ha finalizado la atencion ya que el cliente tenia todo en regla";
 char *malIdentificados= "Se ha finalizado la atencion ya que el cliente estaba mal identificado";
-char *confusionCompanyia= "Se ha finalizado la atencion ya que el cliente se ha confundido de companya";
+char *confusionCompañia= "Se ha finalizado la atencion ya que el cliente se ha confundido de compañia";
 char *signalFinalizacion = "    SIGINT";
 char *finPrograma = "SE PROCEDE A LA FINALIZACION DEL PROGRAMA";
 char *atencionDomiciliariaText= "Se comienza con la accion domiciliaria del cliente";
@@ -93,7 +94,7 @@ FILE *logFile;
 /****************************************** HILOS Y FUNCIONES PRINCIPALES ******************************************/
 
 /*Crea un nuevo cliente cuando recibe una de las dos senyales definidas para ello*/
-void crearNuevoCliente(int signum) { //Solo recibe como argumento la senyal, la estructura del cliente es una variable global
+void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la estructura del cliente es una variable global
 	struct cliente nuevoCliente;
 	bool espacioDisponible=false;		//creamos una variable booleana inicializada a false
 
@@ -112,10 +113,10 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la senyal, la 
 		printf("Hay un nuevo cliente\n");
 		
 		//Vemos si el cliente es de la app o red
-		switch(signum){		//dependiendo de la senyal que recibamos sera un tipo de cliente u otro
+		switch(signum){		//dependiendo de la señal que recibamos sera un tipo de cliente u otro
 			case SIGUSR1:		//cliente de app
 				pthread_mutex_lock(&semaforoColaClientes);
-				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){		//si la senyal SIGUSR1 nos da SIG_ERR se ha producido un error
+				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){		//si la señal SIGUSR1 nos da SIG_ERR se ha producido un error
 					perror("Error en signal");
 					exit(-1);
 				}
@@ -761,7 +762,12 @@ void *accionesEncargado(void *arg){
 
 							pthread_mutex_lock(&semaforoColaClientes);
 							arrayClientes[prio].atendido=2;		//cambiamos el estado a ya atendido
+							clienteAtendido++;		//incrementamos el contador de clientes atendidos
 							pthread_mutex_unlock(&semaforoColaClientes);
+
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteAtendido, arrayClientes[prio2].id);		//el cliente ya ha sido atendido
+							pthread_mutex_unlock(&semaforoFichero);
 
 						}else if(tempAten>80&&tempAten<91){		//si el numero esta entre el 81 y 90 incluidos
 							int tiempo=calculaAleatorios(2,6);		//usamos la funcion "calculaAleatorios" conseguir un numero aleatorio del 2 al 6 incluidos
@@ -782,7 +788,12 @@ void *accionesEncargado(void *arg){
 
 							pthread_mutex_lock(&semaforoColaClientes);
 							arrayClientes[prio].atendido=2;
+							clienteAtendido++;
 							pthread_mutex_unlock(&semaforoColaClientes);
+
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteAtendido, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
 
 						}else{		//si el numero esta entre el 91 y 100
 							int tiempo=calculaAleatorios(1,2);		//usamos la funcion "calculaAleatorios" conseguir un numero aleatorio entre 1 y 2
@@ -798,12 +809,17 @@ void *accionesEncargado(void *arg){
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoFichero);
-							writeLogMessage(confusionCompanyia, arrayClientes[prio].id);
+							writeLogMessage(confusionCompañia, arrayClientes[prio].id);
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoColaClientes);
 							arrayClientes[prio].atendido=2;
+							clienteAtendido++;
 							pthread_mutex_unlock(&semaforoColaClientes);
+
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteAtendido, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
 						}
 					}
 				}
@@ -839,7 +855,23 @@ void *accionesEncargado(void *arg){
 
 							pthread_mutex_lock(&semaforoColaClientes);
 							arrayClientes[prio2].atendido=2;
+							clienteAtendido++;
 							pthread_mutex_unlock(&semaforoColaClientes);
+
+							int soc=calculaAleatorios(1, 100);		//numero aleatorio de 1 a 100
+							if(soc<31){		//si el numero es de 1 a 30 incluidos
+								pthread_mutex_lock(&semaforoFichero);
+								writeLogMessage(solicitaAtencion, arrayClientes[prio2].id);		//el cliente solicita la atencion domiciliaria
+								pthread_mutex_unlock(&semaforoFichero);
+
+								pthread_mutex_lock(&semaforoColaClientes);		
+								arrayClientes[prio2].solicitud=2;		//cambiamos el valor de solicitud a 2, ya la ha pedido
+								pthread_mutex_unlock(&semaforoColaClientes);
+							}else{		//si es del 31 al 100
+								pthread_mutex_lock(&semaforoFichero);
+								writeLogMessage(clienteAtendido, arrayClientes[prio2].id);
+								pthread_mutex_unlock(&semaforoFichero);
+							}
 
 						}else if(tempAten>80&&tempAten<91){
 							int tiempo=calculaAleatorios(2,6);
@@ -860,7 +892,23 @@ void *accionesEncargado(void *arg){
 
 							pthread_mutex_lock(&semaforoColaClientes);
 							arrayClientes[prio2].atendido=2;
+							clienteAtendido++;
 							pthread_mutex_unlock(&semaforoColaClientes);
+
+							int soc=calculaAleatorios(1, 100);
+							if(soc<31){
+								pthread_mutex_lock(&semaforoFichero);
+								writeLogMessage(solicitaAtencion, arrayClientes[prio2].id);
+								pthread_mutex_unlock(&semaforoFichero);
+
+								pthread_mutex_lock(&semaforoColaClientes);
+								arrayClientes[prio2].solicitud=2;
+								pthread_mutex_unlock(&semaforoColaClientes);
+							}else{
+								pthread_mutex_lock(&semaforoFichero);
+								writeLogMessage(clienteAtendido, arrayClientes[prio2].id);
+								pthread_mutex_unlock(&semaforoFichero);
+							}
 
 						}else{
 							int tiempo=calculaAleatorios(1,2);
@@ -876,12 +924,17 @@ void *accionesEncargado(void *arg){
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoFichero);
-							writeLogMessage(confusionCompanyia, arrayClientes[prio2].id);
+							writeLogMessage(confusionCompañia, arrayClientes[prio2].id);
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoColaClientes);
 							arrayClientes[prio2].atendido=2;
+							clienteAtendido++;
 							pthread_mutex_unlock(&semaforoColaClientes);
+
+							pthread_mutex_lock(&semaforoFichero);
+							writeLogMessage(clienteAtendido, arrayClientes[prio2].id);
+							pthread_mutex_unlock(&semaforoFichero);
 						}
 					}
 				}
