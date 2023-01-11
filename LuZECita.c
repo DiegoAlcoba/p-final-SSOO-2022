@@ -87,7 +87,7 @@ struct cliente *arrayClientes;
 struct cliente{
 	char *id;		//no seria mejor poner el id como int? NO PORQUE EL IDENTIFICADOR ES CLIAPP_1
 	int atendido;	//0 no atendido, 1 está siendo atendido, 2 ha sido atendido
-	char *tipo;		//app o red
+	int tipo;		//0 = no tiene, 1 = App, 2 = Red
 	int prioridad;	//Array de hilo-cliente
 	int solicitud;	//0 = no solicitud, 1 = esperando la atención domiciliaria, 2 = ha solicitado atención domiciliaria
 };
@@ -96,7 +96,7 @@ struct cliente{
 struct trabajador{ 
 	char *id;	
 	int clientesAtendidos;
-	char *tipo; //Tecnico, responsable o encargado T, R o E
+	int tipo; //1 = tecnico, 2 = responsable, 3 = encargado
 	int libre; //0 si esta libre 1 si esta ocupado
 };
 
@@ -140,7 +140,7 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 
 				nuevoCliente.id=strcat("cliapp_", numeroId);		//concatenamos el numero de id a el nombre de cliente
 				nuevoCliente.atendido=0;		//todavia no ha sido atendido
-				nuevoCliente.tipo="App";	//cliente de la app
+				nuevoCliente.tipo=1;	//cliente de la app
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
 				pthread_mutex_unlock(&semaforoColaClientes);
 
@@ -160,7 +160,7 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 				
 				nuevoCliente.id=strcat("clired_", numeroId);
 				nuevoCliente.atendido=0;
-				nuevoCliente.tipo="Red";	//cliente de red
+				nuevoCliente.tipo=2;	//cliente de red
 				nuevoCliente.solicitud=0;		//todavia no ha hecho solicitud domiciliaria
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);
 				pthread_mutex_unlock(&semaforoColaClientes);
@@ -193,7 +193,7 @@ void *accionesCliente (void* nuevoCliente) {
 	/*Guardar en log la hora de entrada al sistema y tipo de cliente*/
 	pthread_mutex_lock(&semaforoFichero);
 	writeLogMessage(arrayClientes[aCliente].id, entrada); //Escribe el id del cliente y el char "entrada" (variable global)
-	writeLogMessage(arrayClientes[aCliente].id, arrayClientes[aCliente].tipo); //Escribe el id y tipo del cliente
+	//writeLogMessage(arrayClientes[aCliente].id, arrayClientes[aCliente].tipo); //Escribe el id y tipo del cliente
 	pthread_mutex_unlock(&semaforoFichero);
 
 	do {
@@ -265,7 +265,7 @@ void *accionesCliente (void* nuevoCliente) {
 	}
 
 	/*Cliente de tipo red, que ya ha sido atendido y que ha solicitado atención domiciliaria*/
-	if (arrayClientes[aCliente].tipo == "Red" && arrayClientes[aCliente].atendido == 2 && arrayClientes[aCliente].solicitud == 2) {
+	if (arrayClientes[aCliente].tipo == 2 && arrayClientes[aCliente].atendido == 2 && arrayClientes[aCliente].solicitud == 2) {
 		 
 		do {	
 			//Comprueba el número de solicitudes pendientes
@@ -362,7 +362,7 @@ void *accionesTecnico(void *arg){
 	
 		for(int i =0; i<nClientes; i++ ){
 			//Comprueba que el cliente sea de tipo App con el fin que los tecnicos le atiendan
-			if(arrayClientes[i].tipo="App"){
+			if(arrayClientes[i].tipo==1){
 				//Compruebo tecnico1 libre
 				if(tecnico1.libre==0){
 					//semaforo colaclientes ya que vamos a calcular cual es el cliente mas prioritario con la funcion mayor prioridad
@@ -1063,7 +1063,7 @@ int mayorPrioridad(){
 	int mayorPrioridad=-999;
 	int pos=0;
 	for(int i=0; i<nClientes; i++){
-		if(arrayClientes[i].tipo="App"){
+		if(arrayClientes[i].tipo==1){
 			//Comrpobamos solo la prioridad proque al ser un array por orden de llegada el primero va a ser el que devuelva, es decir el que mas tiempo lleve espernado
 			if(mayorPrioridad<arrayClientes[i].prioridad){
 				mayorPrioridad=arrayClientes[i].prioridad;
@@ -1079,7 +1079,7 @@ int mayorPrioridadRed(){
 	int mayorPrioridad=-999;
 	int posRed=0;
 	for(int i=0; i<nClientes; i++){
-		if(arrayClientes[i].tipo="Red"){
+		if(arrayClientes[i].tipo==2){
 			//Comprobamos solo la prioridad porque al ser un array por orden de llegada el primero va a ser el que devuelva, es decir el que mas tiempo lleve esperando
 			if(mayorPrioridad<arrayClientes[i].prioridad){
 				mayorPrioridad=arrayClientes[i].prioridad;
@@ -1181,88 +1181,53 @@ int main(int argc, char* argv[]) {
 	int nSolicitudesDomiciliarias = 0;
 
 	//Lista de tipos de clientes
-	struct cliente *clienteApp;
-		clienteApp -> id = (char *) malloc (12 * sizeof(char));
-		clienteApp -> id = "cliapp_"; //Luego en cada cliente creado se le anyade el número al final de la cadena de caracteres con ¿strcat? creo
-		
-		clienteApp -> atendido = 0;
+	struct cliente clienteApp;
+		clienteApp.id = "cliapp_"; //Luego en cada cliente creado se le anyade el número al final de la cadena de caracteres con ¿strcat? creo
+		clienteApp.atendido = 0;
+		clienteApp.tipo = 0;
+		clienteApp.prioridad = 0;
+		clienteApp.solicitud = 0;
 
-		clienteApp -> tipo = (char *) malloc (12 * sizeof(char));
-		clienteApp -> tipo = "App";
-
-		clienteApp -> prioridad = 0;
-		clienteApp -> solicitud = 0;
-
-	struct cliente *clienteRed ;
-		clienteRed  -> id = (char *) malloc (12 * sizeof(char));
-		clienteRed  -> id = "clired_"; //Luego en cada cliente creado se le anyade el número al final de la cadena de caracteres con ¿strcat? creo
-		
-		clienteRed  -> atendido = 0;
-
-		clienteRed  -> tipo = (char *) malloc (18 * sizeof(char));
-		clienteRed  -> tipo = "Red";
-
-		clienteRed  -> prioridad = 0;
-		clienteRed -> solicitud = 0;
+	struct cliente clienteRed ;
+		clienteRed.id = "clired_"; //Luego en cada cliente creado se le anyade el número al final de la cadena de caracteres con ¿strcat? creo
+		clienteRed.atendido = 0;
+		clienteRed.tipo = 0;
+		clienteRed.prioridad = 0;
+		clienteRed.solicitud = 0;
 
 	//Lista de trabajadores
 	/*Técnicos*/
-	struct trabajador *tecnico1;
-	tecnico1 -> id = (char *) malloc (10  * sizeof(char));
-	tecnico1 -> id = "tecnico1";
+	struct trabajador tecnico1;
+	tecnico1.id = "tecnico1";
+	tecnico1.clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	tecnico1.tipo = 1;
+	tecnico1.libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
-	tecnico1 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
-	
-	tecnico1 -> tipo = (char *) malloc (8 * sizeof(char));
-	tecnico1 -> tipo = "Tecnico";
-
-	tecnico1 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
-
-	struct trabajador *tecnico2;
-	tecnico2 -> id = (char *) malloc (10  * sizeof(char));
-	tecnico2 -> id = "tecnico2";
-
-	tecnico2 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
-	
-	tecnico2 -> tipo = (char *) malloc (8 * sizeof(char));
-	tecnico2 -> tipo = "Tecnico";
-
-	tecnico2 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	struct trabajador tecnico2;
+	tecnico2.id = "tecnico2";
+	tecnico2.clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	tecnico2.tipo = 1;
+	tecnico2.libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	/*Responsables de reparaciones*/
-	struct trabajador *responsable1;
-	responsable1 -> id = (char *) malloc (14  * sizeof(char));
-	responsable1 -> id = "responsable1";
+	struct trabajador responsable1;
+	responsable1.id = "responsable1";
+	responsable1.clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	responsable1.tipo = 2;
+	responsable1.libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
-	responsable1 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
-	
-	responsable1 -> tipo = (char *) malloc (20 * sizeof(char));
-	responsable1 -> tipo = "Resp. Reparaciones";
-
-	responsable1 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
-
-	struct trabajador *responsable2;
-	responsable2 -> id = (char *) malloc (14  * sizeof(char));
-	responsable2 -> id = "responsable2";
-
-	responsable2 -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
-	
-	responsable2 -> tipo = (char *) malloc (20 * sizeof(char));
-	responsable2 -> tipo = "Resp. Reparaciones";
-
-	responsable2 -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	struct trabajador responsable2;
+	responsable2.id = "responsable2";
+	responsable2.clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	responsable2.tipo = 2;
+	responsable2.libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	/*Encargado*/
-	struct trabajador *encargado;
-	encargado -> id = (char *) malloc (10 * sizeof(char));
-	encargado -> id = "encargado";
-
-	encargado -> clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
-
-	encargado -> tipo = (char *) malloc (10 * sizeof(char));
-	encargado -> tipo = "Encargado";
-
-	encargado -> libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	struct trabajador encargado;
+	encargado.id = "encargado";
+	encargado.clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
+	encargado.tipo = 3;
+	encargado.libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	//Fichero de log
 	logFile = fopen("registroTiempos.log", "wt"); //Opcion "wt" = Cada vez que se ejecuta el programa, si el archivo ya existe se elimina su contenido para empezar de cero
@@ -1279,11 +1244,11 @@ int main(int argc, char* argv[]) {
 
 	/* CREACIÓN DE HILOS DE TECNICOS, RESPONSABLES, ENCARGADO Y ATENCION DOMICILIARIA */
 	//Se pasa como argumento la estructura del trabajador que ejecuta el hilo
-	pthread_create(&tecnico_1, NULL, accionesTecnico, (void *) tecnico1);
-	pthread_create(&tecnico_2, NULL, accionesTecnico, (void *) tecnico2);
-	pthread_create(&responsable_1, NULL, accionesTecnico, (void *) responsable1);
-	pthread_create(&responsable_2, NULL, accionesTecnico, (void *) responsable2);
-	pthread_create(&encargado_, NULL, accionesEncargado, (void *) encargado);
+	pthread_create(&tecnico_1, NULL, accionesTecnico, (void *) &tecnico1);
+	pthread_create(&tecnico_2, NULL, accionesTecnico, (void *) &tecnico2);
+	pthread_create(&responsable_1, NULL, accionesTecnico, (void *) &responsable1);
+	pthread_create(&responsable_2, NULL, accionesTecnico, (void *) &responsable2);
+	pthread_create(&encargado_, NULL, accionesEncargado, (void *) &encargado);
 	pthread_create(&atencionDomiciliaria_, NULL, accionesTecnicoDomiciliario, NULL);/*Este hilo no lo ejecuta ningún trabajador en particular*/
 
 	/* ESPERAR POR senyalES INFINITAMENTE */
