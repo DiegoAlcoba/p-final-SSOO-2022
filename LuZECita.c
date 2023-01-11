@@ -60,7 +60,7 @@ char *atencionDomiciliariaFin= "El técnico ha finalizado la atención domicilia
 
 /*Variables globales*/
 //Declaración de los hilos de trabajadores
-pthread_t tecnico_1, tecnico_2, responsable_1, responsable_2, encargado_, atencionDomiciliaria_;
+pthread_t tecnico_1, tecnico_2, responsable_1, responsable_2, encargado_, atencionDomiciliaria_, hiloClientes;
 
 //Semáforos mutex
 pthread_mutex_t semaforoFichero;
@@ -108,7 +108,7 @@ FILE *logFile;
 
 /*Crea un nuevo cliente cuando recibe una de las dos senyales definidas para ello*/
 void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la estructura del cliente es una variable global
-	struct cliente nuevoCliente;
+	
 	bool espacioDisponible=false;		//creamos una variable booleana inicializada a false
 
 	pthread_mutex_lock(&semaforoColaClientes);		//bloqueamos el acceso para que otros hilos no puedan entrar en la seccion critica
@@ -119,15 +119,15 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 
 	if(espacioDisponible==true){		
 		pthread_mutex_lock(&semaforoColaClientes);
+		struct cliente nuevoCliente;
 		nClientes++;	//aumentamos el contador de clientes totales
 		pthread_mutex_unlock(&semaforoColaClientes);
 
-		char numeroId[2];		//creamos numeroId
+		char numeroId [10];		//creamos numeroId
 		printf("Hay un nuevo cliente\n");
 		
 		//Vemos si el cliente es de la app o red
-		switch(signum){		//dependiendo de la señal que recibamos sera un tipo de cliente u otro
-			case -10:		//cliente de app
+		if (signum == 10){		//Cliente de tipo App
 				pthread_mutex_lock(&semaforoColaClientes);
 				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){		//si la señal SIGUSR1 nos da SIG_ERR se ha producido un error
 					perror("Error en signal");
@@ -137,7 +137,7 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 
 				sprintf(numeroId, "%d", nClientesApp);		
 
-				nuevoCliente.id=strcat("cliapp_", numeroId);		//concatenamos el numero de id a el nombre de cliente
+				strcat(nuevoCliente.id, numeroId);		//concatenamos el numero de id a el nombre de cliente
 				nuevoCliente.atendido=0;		//todavia no ha sido atendido
 				nuevoCliente.tipo=1;	//cliente de la app
 				nuevoCliente.prioridad=calculaAleatorios(1, 10);	//damos un numero de prioridad aleatorio al cliente
@@ -145,35 +145,31 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 
 				printf("El cliente es %s\n", nuevoCliente.id);
 				
-			break;
-
-			case -12:		//cliente de red
-				pthread_mutex_lock(&semaforoColaClientes);
-				if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){
-					perror("Error en signal");
-					exit(-1);
-				}
-				nClientesRed++;		//aumentamos el contador de clientes de red
-				
-				sprintf(numeroId, "%d", nClientesRed);
-				
-				nuevoCliente.id=strcat("clired_", numeroId);
-				nuevoCliente.atendido=0;
-				nuevoCliente.tipo=2;	//cliente de red
-				nuevoCliente.solicitud=0;		//todavia no ha hecho solicitud domiciliaria
-				nuevoCliente.prioridad=calculaAleatorios(1, 10);
-				pthread_mutex_unlock(&semaforoColaClientes);
-
-				printf("El cliente es %s\n", nuevoCliente.id);
-
-			break;
+		} 
+		else {
+			//cliente de tipo red
+			pthread_mutex_lock(&semaforoColaClientes);
+			if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){
+				perror("Error en signal");
+				exit(-1);
+			}
+			nClientesRed++;		//aumentamos el contador de clientes de red
+			
+			sprintf(numeroId, "%d", nClientesRed);
+			
+			strcat(nuevoCliente.id, numeroId);
+			nuevoCliente.atendido=0;
+			nuevoCliente.tipo=2;	//cliente de red
+			nuevoCliente.solicitud=0;		//todavia no ha hecho solicitud domiciliaria
+			nuevoCliente.prioridad=calculaAleatorios(1, 10);
+			pthread_mutex_unlock(&semaforoColaClientes);
+			printf("El cliente es %s\n", nuevoCliente.id);
 
 		}
 		pthread_mutex_lock(&semaforoColaClientes);
 		arrayClientes[nClientes-1]=nuevoCliente; //asigna la estructura nuevoCliente al ultimo elemento de arrayClientes
-		pthread_t hiloClientes; // declaramos hiloClientes para almacenar el identificador de un hilo específico
 		arrayHilosClientes[nClientes-1]=hiloClientes; //asigna la estructura hiloClientes al ultimo elemento de arrayHilosClientes
-		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)((long)nClientes-1));
+		pthread_create(&arrayHilosClientes[nClientes-1], NULL, accionesCliente, (void*)(intptr_t)nClientes-1);
  //pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada, se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
 		pthread_mutex_unlock(&semaforoColaClientes);
 		
@@ -186,7 +182,7 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 
 void *accionesCliente (void* nuevoCliente) {
 	//int aCliente = *(int *)nuevoCliente ??
-	int aCliente = *(intptr_t *)nuevoCliente; //<-- Este creo que no falla y sería solo trabajar con aCliente
+	int aCliente = (intptr_t )nuevoCliente; //<-- Este creo que no falla y sería solo trabajar con aCliente
 	//(int *) nuevoCliente;
 	
 	/*Guardar en log la hora de entrada al sistema y tipo de cliente*/
