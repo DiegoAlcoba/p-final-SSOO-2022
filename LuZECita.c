@@ -56,7 +56,7 @@ char *signalFinalizacion = "    SIGINT";
 char *finPrograma = "SE PROCEDE A LA FINALIZACION DEL PROGRAMA";
 char *atencionDomiciliariaText= "Se comienza con la accion domiciliaria del cliente";
 char *atencionDomiciliariaAtendido= " Se ha atendido al cliente en el domicilio";
-char *atencionDomiciliariaFin= "Se finaliza con la accion domiciliaria del cliente";
+char *atencionDomiciliariaFin= "El técnico ha finalizado la atención domiciliaria";
 
 /*Variables globales*/
 //Declaración de los hilos de trabajadores
@@ -81,7 +81,6 @@ int nSolicitudesDomiciliarias; //N solicitudes domiciliarias (4 para que el resp
 
 /*Arrays dinámicos que almacenan a los clientes (estructura)*/
 struct cliente *arrayClientes;
-struct cliente *arrayClientesSolicitudes; //Clientes a los que tiene que visitar el responsable
 
 /*Estructuras*/
 //estructura que guarda la informacion del cliente
@@ -268,32 +267,29 @@ void *accionesCliente (void* nuevoCliente) {
 	/*Cliente de tipo red, que ya ha sido atendido y que ha solicitado atención domiciliaria*/
 	if (arrayClientes[aCliente].tipo == "Red" && arrayClientes[aCliente].atendido == 2 && arrayClientes[aCliente].solicitud == 2) {
 		 
-		do {
+		do {	
 			//Comprueba el número de solicitudes pendientes
 			pthread_mutex_lock(&semaforoSolicitudes);
-			if (nSolicitudesDomiciliarias < 4) {
-				printf("Actualmente hay %d solicitudes para atencion domiciliaria.\n", nSolicitudesDomiciliarias);
-				pthread_mutex_unlock(&semaforoSolicitudes);
-			} 
-			else {
-				sleep(3); //Si hay 4 o más solicitudes duerme 3 segundos y vuelve al inicio
-			}
-
-			//Si es menor de 4 se incrementa
-			pthread_mutex_lock(&semaforoSolicitudes);
-			nSolicitudesDomiciliarias++; 
+			printf("Actualmente hay %d solicitudes para atencion domiciliaria.\n", nSolicitudesDomiciliarias);
 			pthread_mutex_unlock(&semaforoSolicitudes);
-  	    	 
-  	    	//Se escribe en el log que el cliente espera para ser atendido
-  	    	pthread_mutex_lock(&semaforoFichero);
-  	    	writeLogMessage(arrayClientes[aCliente].id, esperaAtencion);
-  	    	pthread_mutex_unlock(&semaforoFichero);
-  	    	
-			//Se cambia el valor de solicitud a 1 (cliente esperando atención domiciliaria)
-			pthread_mutex_lock(&semaforoColaClientes);
-			arrayClientes[aCliente].solicitud == 1; 
-			pthread_mutex_unlock(&semaforoColaClientes);
 
+			//Si nSolicitudesDomiciliarias < 4. Punto b.
+			if (nSolicitudesDomiciliarias < 4) {
+				//Si es menor de 4 se incrementa
+				pthread_mutex_lock(&semaforoSolicitudes);
+				nSolicitudesDomiciliarias++; 
+				pthread_mutex_unlock(&semaforoSolicitudes);
+	
+  	    		//Se escribe en el log que el cliente espera para ser atendido
+  	    		pthread_mutex_lock(&semaforoFichero);
+  	    		writeLogMessage(arrayClientes[aCliente].id, esperaAtencion);
+  	    		pthread_mutex_unlock(&semaforoFichero);
+	
+				//Se cambia el valor de solicitud a 1 (cliente esperando atención domiciliaria)
+				pthread_mutex_lock(&semaforoColaClientes);
+				arrayClientes[aCliente].solicitud == 1; 
+				pthread_mutex_unlock(&semaforoColaClientes);
+			}
 			//Si hay 4 solicitudes (tras incrementar)
 			if (nSolicitudesDomiciliarias == 4) {
 				//El cuarto en solicitad envía la senyal al técnico de que ya puede salir de viaje
@@ -968,43 +964,44 @@ void *accionesTecnicoDomiciliario(void *arg){
 	//Bucle que nos ayuda a volver a ejecutarla
 	while(1){
 		//Compruebo el numero de solicitudes si estas son menores que 4 se queda bloqueado hasta que lo sean 4
-		while(nSolicitudesDomiciliarias<4){
-			pthread_cond_wait(&condicionSaleViaje,&semaforoSolicitudes);
-		}
+		pthread_mutex_lock(&semaforoSolicitudes);
+		printf("Hay %d solicitudes de atención domiciliaria en este momento", nSolicitudesDomiciliarias);
+		pthread_cond_wait(&condicionSaleViaje,&semaforoSolicitudes);
+		
 		//Bucle for que recorre el arraySolicitudes con el fin de atender todos
-		for(int i=0; i<nSolicitudesDomiciliarias; i++ ){
-			//Semaforo del fichero ya que le indicamos que se comienza la atencion
-			pthread_mutex_lock(&semaforoFichero);
-			writeLogMessage(atencionDomiciliariaText, arrayClientesSolicitudes[i].id);
-			pthread_mutex_unlock(&semaforoFichero);
-			//Dormimos uno para cada peticion
-			sleep(1);
-			//Semaforo del fichero ya que le indicamos que se ha atendido una solicitud
-			pthread_mutex_lock(&semaforoFichero);
-			writeLogMessage(atencionDomiciliariaAtendido, arrayClientesSolicitudes[i].id);
-			pthread_mutex_unlock(&semaforoFichero);
-			//Semaforo de colaCleintes ya que vamos a cambiar el valor del flag
-			pthread_mutex_lock(&semaforoColaClientes);
-			arrayClientesSolicitudes[i].atendido=0;
-			pthread_mutex_unlock(&semaforoColaClientes);
-			//Semaforo de solicitudes ya que se va a modificar el numero de solicitudes a 0
-			pthread_mutex_lock(&semaforoSolicitudes);
-			//Comrpobamos que se este atendiendo la ultima atencion en domicilio
-			if(i==3){
-				nSolicitudesDomiciliarias=0;
+		for(int i=0; i<nClientes; i++ ){
+			if (arrayClientes[i].solicitud == 1) {
+
+				//Guardamos en el fichero que comienza la atencion
+				pthread_mutex_lock(&semaforoFichero);
+				writeLogMessage(arrayClientes[i].id, atencionDomiciliariaText);
+				pthread_mutex_unlock(&semaforoFichero);
+
+				//Dormimos uno para cada peticion
+				sleep(1);
+				
+				//Escribe en el log que ya se ha atendido una solicitud
+				pthread_mutex_lock(&semaforoFichero);
+				writeLogMessage(arrayClientes[i].id, atencionDomiciliariaAtendido);
+				pthread_mutex_unlock(&semaforoFichero);
+				//Semaforo de colaCleintes ya que vamos a cambiar el valor del flag
+				pthread_mutex_lock(&semaforoColaClientes);
+				arrayClientes[i].solicitud=0;
+				pthread_mutex_unlock(&semaforoColaClientes);
 			}
+			//Una vez están los 4 atendidos se pone el n de solicitudes a 0
+			pthread_mutex_lock(&semaforoSolicitudes);
+			nSolicitudesDomiciliarias=0;
 			pthread_mutex_unlock(&semaforoSolicitudes);
+
 			//Semaforo de Fichero ya que se ha finalizado la atencion domiciliaria
 			pthread_mutex_lock(&semaforoFichero);
-			writeLogMessage(atencionDomiciliariaFin, arrayClientesSolicitudes[i].id);
+			writeLogMessage("TÉCNICO DOMICILIARIO", atencionDomiciliariaFin);
 			pthread_mutex_unlock(&semaforoFichero);
 			//Se avisa que los que esperaban por la solicitud domiciliaria se finaliza
 			pthread_cond_signal(&condicionTerminaViaje);
 		}
-		
 	}
-
-
 }
 
 //:::::::::::::::::::::::: NO DEFINITIVA, HA SIDO A VOLEO ::::::::::::::::::::::::::::::::::::::::::::::
@@ -1045,7 +1042,6 @@ void finalizarPrograma (int signal) {
 	/* LIBERACIÓN DE MEMORIA */
 	free(arrayHilosClientes);
 	free(arrayClientes);
-	free(arrayClientesSolicitudes);
 	//Puede que si sea necesario liberar memoria de los char* cuando se inicializan las estructuras en el main, no estoy seguro, depende de si da fallo en ejecución
 
 	/*Se matan los hilos de los trabajadores*/
@@ -1143,7 +1139,6 @@ int main(int argc, char* argv[]) {
 	/* INICIALIZACIÓN DE RECURSOS */
 	arrayHilosClientes = (pthread_t *) malloc (MAX_CLIENTES * sizeof(struct cliente *)); //Array dinámico de hilos de clientes
 	arrayClientes = (struct cliente *) malloc (MAX_CLIENTES * sizeof(struct cliente *)); //array del total de clientes
-	arrayClientesSolicitudes = (struct cliente *) malloc (4 * sizeof(struct cliente *)); // array de clientes con solicitudes (4 para que salga el responsable)
 	
 	/* senyalES */
 	//Cliente App
