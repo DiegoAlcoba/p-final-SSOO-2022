@@ -127,13 +127,12 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 		
 		//Vemos si el cliente es de la app o red
 		switch(signum){		//dependiendo de la señal que recibamos sera un tipo de cliente u otro
-			case SIGUSR1:		//cliente de app
+			case -10:		//cliente de app
 				pthread_mutex_lock(&semaforoColaClientes);
 				if(signal(SIGUSR1, crearNuevoCliente)==SIG_ERR){		//si la señal SIGUSR1 nos da SIG_ERR se ha producido un error
 					perror("Error en signal");
 					exit(-1);
 				}
-			
 				nClientesApp++;				//aumentamos el contador de clientes de app
 
 				sprintf(numeroId, "%d", nClientesApp);		
@@ -148,7 +147,7 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 				
 			break;
 
-			case SIGUSR2:		//cliente de red
+			case -12:		//cliente de red
 				pthread_mutex_lock(&semaforoColaClientes);
 				if(signal(SIGUSR2, crearNuevoCliente)==SIG_ERR){
 					perror("Error en signal");
@@ -178,7 +177,7 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
  //pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada, se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
 		pthread_mutex_unlock(&semaforoColaClientes);
 		
-		printf("Se ha creado un nuevo cliente con ID %s y tipo %s\n", nuevoCliente.id, nuevoCliente.tipo);
+		printf("Se ha creado un nuevo cliente con ID %s y tipo %d\n", nuevoCliente.id, nuevoCliente.tipo);
 
 	}else{
 		printf("No hay espacio disponible para atender a más clientes en este momento\n");
@@ -962,10 +961,10 @@ void *accionesEncargado(void *arg){
 /* Realiza las acciones de los tecnicos domiciliarios*/
 void *accionesTecnicoDomiciliario(void *arg){
 	//Bucle que nos ayuda a volver a ejecutarla
-	while(1){
+	do{
 		//Compruebo el numero de solicitudes si estas son menores que 4 se queda bloqueado hasta que lo sean 4
 		pthread_mutex_lock(&semaforoSolicitudes);
-		printf("Hay %d solicitudes de atención domiciliaria en este momento", nSolicitudesDomiciliarias);
+		printf("Hay %d solicitudes de atención domiciliaria en este momento\n", nSolicitudesDomiciliarias);
 		pthread_cond_wait(&condicionSaleViaje,&semaforoSolicitudes);
 		
 		//Bucle for que recorre el arraySolicitudes con el fin de atender todos
@@ -1001,7 +1000,7 @@ void *accionesTecnicoDomiciliario(void *arg){
 			//Se avisa que los que esperaban por la solicitud domiciliaria se finaliza
 			pthread_cond_signal(&condicionTerminaViaje);
 		}
-	}
+	}while(nSolicitudesDomiciliarias<4);
 }
 
 //:::::::::::::::::::::::: NO DEFINITIVA, HA SIDO A VOLEO ::::::::::::::::::::::::::::::::::::::::::::::
