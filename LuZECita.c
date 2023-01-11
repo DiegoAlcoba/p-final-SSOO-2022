@@ -322,265 +322,399 @@ void *accionesCliente (void* nuevoCliente) {
 	pthread_exit(NULL);
 }
 
+/*Realizas las acciones de los tecnicos y de los responsables*/
 void *accionesTecnico(void *arg){
-	int tiempoAtencion=0;
-	int flagAtendido=0;
-	int tiempo=0;
 	bool ate= true;
 	struct cliente cliente;
 	struct trabajador tecnico1;
 	struct trabajador tecnico2;
-
+	struct trabajador responsables1;
+	struct trabajador responsables2;
+	//Bucle while  para que se ejcute y poder buscar el siguiente cliente atendido
 	while(ate){
+		//Bucle while que si no hay cleintes en el programa espere un segundo
 		while(nClientesApp==0){
 			sleep(1);
 		}
 	
 		for(int i =0; i<nClientes; i++ ){
+			//Comprueba que el cliente sea de tipo App con el fin que los tecnicos le atiendan
 			if(arrayClientes[i].tipo="App"){
-				if(tecnico1.clientesAtendidos<5 && tecnico1.libre==0){
-				
+				int tiempoAtencion=0;
+				int flagAtendido=0;
+				int tiempo=0;
+				//Compruebo tecnico1 libre
+				if(tecnico1.libre==0){
+					//semaforo colaclientes ya que vamos a calcular cual es el cliente mas prioritario con la funcion mayor prioridad
 					pthread_mutex_lock(&semaforoColaClientes);
 					tiempoAtencion=mayorPrioridad();
 					pthread_mutex_unlock(&semaforoColaClientes);
-
+					//semaforo cola clientes ya que cambiamos el flag de atendido
 					pthread_mutex_lock(&semaforoColaClientes);
 					printf("Comienza el tecnico a atender al cliente %s: ", arrayClientes[tiempoAtencion].id);
 					tecnico1.libre=1;
 					arrayClientes[tiempoAtencion].atendido=1;
-
 					pthread_mutex_unlock(&semaforoColaClientes);
+					//Calculo el tipo de atencion
 					flagAtendido=calculaAleatorios(1, 100);
 				
-
+					//Si la atencion es del 80%  es que tiene todo en regla
 					if(flagAtendido<=80){
+						//Calculo el timepo que tiene que dormir
 						tiempo=calculaAleatorios(1,4);
-
+						//Guardo el log de que comienza la accion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//duermo el timepo de atencion
 						sleep(tiempo);
-
+						//guardo el log que finaliza la atencion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(todoEnRegla, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+					//Si la atencion es el 10% es que se han identificado mal
 					}else if(flagAtendido>80&&flagAtendido<=90){
+						//Calculo el timepo que tiene que dormir
 						tiempo=calculaAleatorios(2,6);
-
+						//Guardo el log de que comienza la accion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//duermo el timepo de atencion
 						sleep(tiempo);
-
+						//guardo el log que finaliza la atencion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
-
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
 					}else{
+						//Calculo el timepo que tiene que dormir
 						tiempo=calculaAleatorios(1,2);
-
+						//Guardo el log de que comienza la accion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//duermo el timepo de atencion
 						sleep(tiempo);
-
+						//guardo el log que finaliza la atencion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(confusionCompañia, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
 					}
+					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
 					pthread_mutex_lock(&semaforoColaClientes);
+					tecnico1.clientesAtendidos=tecnico1.clientesAtendidos+1;
 					arrayClientes[tiempoAtencion].atendido=2;
 					tecnico1.libre=0;
 					pthread_mutex_unlock(&semaforoColaClientes);
-
-					if(tecnico1.clientesAtendidos==5){
+					//Si el tecnico 1 ha atendido a 5 descansa 5 segundo
+					if(tecnico1.clientesAtendidos%5==0){
 						sleep(5);
-						tecnico1.clientesAtendidos=0;
 					}
-				}else if(tecnico2.clientesAtendidos<5 && tecnico2.libre==0){
-				
+				//Si el tecnico1 no esta libre llama al tecnico2
+				}else if(tecnico2.libre==0){
+					//Semaforo cola clientes en el que señalamos que cleinte se va atender
 					pthread_mutex_lock(&semaforoColaClientes);
 					tiempoAtencion=mayorPrioridad();
 					pthread_mutex_unlock(&semaforoColaClientes);
-
+					//semaforo cola cleintes que cambia el flag a atendiendose
 					pthread_mutex_lock(&semaforoColaClientes);
 					printf("Comienza el tecnico a atender al cliente %s: ", arrayClientes[tiempoAtencion].id);
 					tecnico2.libre=1;
 					arrayClientes[tiempoAtencion].atendido=1;
-
 					pthread_mutex_unlock(&semaforoColaClientes);
+					//Calculo el tipo de funcion
 					flagAtendido=calculaAleatorios(1, 100);
-					
-
+					//Si la atencion es del 80%  es que tiene todo en regla
 					if(flagAtendido<=80){
+						//Calculo el timepo que tiene que dormir
 						tiempo=calculaAleatorios(1,4);
-
+						//Guardo el log de que comienza la accion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//duermo el timepo de atencion
 						sleep(tiempo);
-
+						//guardo el log que finaliza la atencion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(todoEnRegla, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+					//Si la atencion es el 10% es que se han identificado mal
 					}else if(flagAtendido>80&&flagAtendido<=90){
+						//Calculo el timepo que tiene que dormir
 						tiempo=calculaAleatorios(2,6);
-
+						//Guardo el log de que comienza la accion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//duermo el timepo de atencion
 						sleep(tiempo);
-
+						//guardo el log que finaliza la atencion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
-
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
 					}else{
+						//Calculo el timepo que tiene que dormir
 						tiempo=calculaAleatorios(1,2);
-
+						//Guardo el log de que comienza la accion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//duermo el timepo de atencion
 						sleep(tiempo);
-
+						//guardo el log que finaliza la atencion
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-
+						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(confusionCompañia, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
 					}
+					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
 					pthread_mutex_lock(&semaforoColaClientes);
+					tecnico2.clientesAtendidos=tecnico2.clientesAtendidos+1;
 					arrayClientes[tiempoAtencion].atendido=2;
 					tecnico2.libre=0;
 					pthread_mutex_unlock(&semaforoColaClientes);
-
-					if(tecnico2.clientesAtendidos==5){
+					//Si el tecnico ha atendido a 5 clientes descansa
+					if(tecnico2.clientesAtendidos%5==0){
 						sleep(5);
-						tecnico2.clientesAtendidos=0;
 					}
 				}
+			}else{
+				//EL cleinte que se va a atender es de tipo red
+				int atencionTiempo=0;
+				int atendidoFlag=0;
+				int tiempoRed=0;
+				int atencionSolicitud=0;
+				//Copruebo si el responsable 1 esta libre
+				if(responsable1.libre==0){
+					//Semaforo de la cola clientes con el fin de localizar cual es el primer cliente de ese tipo que tenga que atenderse
+					pthread_mutex_lock(&semaforoColaClientes);
+					atencionTiempo=mayorPrioridadRed();
+					pthread_mutex_unlock(&semaforoColaClientes);
+					//Semaforo de la cola cliente para cambiar el flag a atendiendose
+					pthread_mutex_lock(&semaforoColaClientes);
+					printf("Comienza el tecnico a atender al cliente %s: ", arrayClientes[tiempoAtencion].id);
+					responsable1.libre=1;
+					arrayClientes[atencionTiempo].atendido=1;
+					pthread_mutex_unlock(&semaforoColaClientes);
+					//Calculamos el tipo de atencion
+					atendidoFlag=calculaAleatorios(1,100);
+
+					//Si la atencion es del 80%  es que tiene todo en regla
+					if(flagAtendido<=80){
+						//Calculo el timepo que tiene que dormir
+						tiempo=calculaAleatorios(1,4);
+						//Calculo si el cleinte quiere atencion domiciliaria o no
+						atencionSolicitud=calculaAleatorios(1,100);
+						pthread_mutex_lock(&semaforoFichero);
+						if(atencionSolicitud<=30){
+							arrayClientes[i].solicitud=2;
+						}else{
+							arrayClientes[i].solicitud=0;
+						}
+						pthread_mutex_unlock(&semaforoFichero);
+						//Guardo el log de que comienza la accion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//duermo el timepo de atencion
+						sleep(tiempo);
+						//guardo el log que finaliza la atencion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//guardo el log que indica la causa de la salida
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(todoEnRegla, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+					//Si la atencion es el 10% es que se han identificado mal
+					}else if(flagAtendido>80&&flagAtendido<=90){
+						//Calculo el timepo que tiene que dormir
+						tiempo=calculaAleatorios(2,6);
+						//Calculo si el cleinte quiere atencion domiciliaria o no
+						atencionSolicitud=calculaAleatorios(1,100);
+						pthread_mutex_lock(&semaforoFichero);
+						if(atencionSolicitud<=30){
+							arrayClientes[i].solicitud=2;
+						}else{
+							arrayClientes[i].solicitud=0;
+						}
+						pthread_mutex_unlock(&semaforoFichero);
+						//Guardo el log de que comienza la accion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//duermo el timepo de atencion
+						sleep(tiempo);
+						//guardo el log que finaliza la atencion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//guardo el log que indica la causa de la salida
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
+					}else{
+
+						//Calculo el timepo que tiene que dormir
+						tiempo=calculaAleatorios(1,2);
+						//Guardo el log de que comienza la accion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//duermo el timepo de atencion
+						sleep(tiempo);
+						//guardo el log que finaliza la atencion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//guardo el log que indica la causa de la salida
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(confusionCompañia, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+					}
+					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
+					pthread_mutex_lock(&semaforoColaClientes);
+					responsable1.clientesAtendidos=responsable1.clientesAtendidos+1;
+					arrayClientes[atencionTiempo].atendido=2;
+					responsable1.libre=0;
+					pthread_mutex_unlock(&semaforoColaClientes);
+					//Comrpueba si lleva 6 cleintes atendidos y descansa 5
+					if(responsable1.clientesAtendidos%6==0){
+						sleep(5);
+					}
+
+				}else if(responsable2.libre==0){
+					//Compruebo si el responsable 2 esta libre
+					//Semaforo de la cola cleintes con el fin de localizar el cliente prioridad
+					pthread_mutex_lock(&semaforoColaClientes);
+					atencionTiempo=mayorPrioridadRed();
+					pthread_mutex_unlock(&semaforoColaClientes);
+					//Semafoto de colacleintes para cambiar el flag a atendiendose
+					pthread_mutex_lock(&semaforoColaClientes);
+					printf("Comienza el tecnico a atender al cliente %s: ", arrayClientes[tiempoAtencion].id);
+					responsable2.libre=1;
+					arrayClientes[atencionTiempo].atendido=1;
+					pthread_mutex_unlock(&semaforoColaClientes);
+					atendidoFlag=calculaAleatorios(1,100);
+
+					//Si la atencion es del 80%  es que tiene todo en regla
+					if(flagAtendido<=80){
+						//Calculo el timepo que tiene que dormir
+						tiempo=calculaAleatorios(1,4);
+						//Calculo si el cleinte quiere atencion domiciliaria o no
+						atencionSolicitud=calculaAleatorios(1,100);
+						pthread_mutex_lock(&semaforoFichero);
+						if(atencionSolicitud<=30){
+							arrayClientes[i].solicitud=2;
+							
+						}else{
+							arrayClientes[i].solicitud=0;
+						}
+						pthread_mutex_unlock(&semaforoFichero);
+						//Guardo el log de que comienza la accion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//duermo el timepo de atencion
+						sleep(tiempo);
+						//guardo el log que finaliza la atencion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//guardo el log que indica la causa de la salida
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(todoEnRegla, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+					//Si la atencion es el 10% es que se han identificado mal
+					}else if(flagAtendido>80&&flagAtendido<=90){
+						//Calculo el timepo que tiene que dormir
+						tiempo=calculaAleatorios(2,6);
+						//Calculo si el cleinte quiere atencion domiciliaria o no
+						atencionSolicitud=calculaAleatorios(1,100);
+						pthread_mutex_lock(&semaforoFichero);
+						if(atencionSolicitud<=30){
+							arrayClientes[i].solicitud=2;
+						
+						}else{
+							arrayClientes[i].solicitud=0;
+						}
+						pthread_mutex_unlock(&semaforoFichero);
+						//Guardo el log de que comienza la accion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//duermo el timepo de atencion
+						sleep(tiempo);
+						//guardo el log que finaliza la atencion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//guardo el log que indica la causa de la salida
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
+					}else{
+
+						//Calculo el timepo que tiene que dormir
+						tiempo=calculaAleatorios(1,2);
+						//Guardo el log de que comienza la accion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteEmpiezaAtendido, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//duermo el timepo de atencion
+						sleep(tiempo);
+						//guardo el log que finaliza la atencion
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(clienteFinalizaAtencion, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+						//guardo el log que indica la causa de la salida
+						pthread_mutex_lock(&semaforoFichero);
+						writeLogMessage(confusionCompañia, arrayClientes[tiempoAtencion].id);
+						pthread_mutex_unlock(&semaforoFichero);
+					}
+					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
+					pthread_mutex_lock(&semaforoColaClientes);
+					responsable2.clientesAtendidos=responsable2.clientesAtendidos+1;
+					arrayClientes[atencionTiempo].atendido=2;
+					responsable2.libre=0;
+					pthread_mutex_unlock(&semaforoColaClientes);
+					//Compruebo si el responsable ha atendido a 6 clientes y descansa
+					if(responsable2.clientesAtendidos%6==0){
+						sleep(5);
+					}
+				}
+
 			}
 		}
 	}
 }
-
-/*COMPROBAR SI ESTA BIEN O USAR LA OTRA(mas abajo)*/
-// void *accionesEncargado(void *arg){
-// 	int i;
-// 	bool atendiendo=true; //bandera que indica si está atendiendo a un cliente o no
-	
-// 	while(atendiendo){
-// 		//espera a que haya clientes disponibles
-// 		while(nClientes==0){
-// 			sleep(3);
-// 		}
-// 		//busca al cliente para atender primero de red y si no hubiera de tipo app
-// 		int clienteAtender=-1;
-// 		pthread_mutex_lock(&semaforoColaClientes);
-// 		for(i=0; i<nClientes; i++){
-// 			if(arrayClientes[i].atendido==0){ //si el cliente no ha sido atendido
-// 				if(strcmp(arrayClientes[i].tipo, "Red")==0){ //si es de tipo red
-// 					clienteAtender=i;
-// 					break;
-// 				}
-// 				else if(strcmp(arrayClientes[i].tipo, "App")==0 && clienteAtender==-1){ //si es de tipo app y no se ha encontrado aún un cliente de red
-// 					clienteAtender=i;
-// 				}	
-// 			}
-// 		}
-// 		if(clienteAtender==-1){ //si no se ha encontrado ningún cliente de tipo red o app
-// 			//atiende a la prioridad y sino al que más tiempo lleve esperando
-// 			int tiempoEspera=0;
-// 			for(i=0; i<nClientes; i++){
-// 				if(arrayClientes[i].atendido==0){ //si el cliente no ha sido atendido
-// 					if(arrayClientes[i].prioridad>tiempoEspera){ //si tiene mayor prioridad
-// 						tiempoEspera=arrayClientes[i].prioridad;
-// 						clienteAtender=i;
-// 					}
-// 					else if(arrayClientes[i].prioridad==tiempoEspera){ //si tiene la misma prioridad
-// 						if(arrayClientes[i].id>arrayClientes[clienteAtender].id){ //si lleva más tiempo esperando
-// 							clienteAtender=i;
-// 						}
-// 					}
-// 				}
-// 			}
-// 		}
-// 		if(clienteAtender!=-1){ //si se ha encontrado un cliente para atender
-// 			arrayClientes[clienteAtender].atendido=1; //marca el cliente como siendo atendido
-// 			pthread_mutex_unlock(&semaforoColaClientes);
-
-// 			//calculamos el tipo de atención y en función de esto el tiempo de atención (el 80%, 10%, 10%)
-// 			int tiempoAtencion;
-// 			if(arrayClientes[clienteAtender].solicitud==1){ //si el cliente ha solicitado atención domiciliaria
-// 				tiempoAtencion=(80 * rand())/RAND_MAX + 1;
-// 			}
-// 			else{ //si el cliente no ha solicitado atención domiciliaria
-//   				if(strcmp(arrayClientes[clienteAtender].tipo, "App")==0){ //si es de tipo app
-//     			tiempoAtencion=(10 * rand())/RAND_MAX + 1;
-//   				}
-//   				else{ //si es de tipo red
-//     				tiempoAtencion=(20 * rand())/RAND_MAX + 1;
-//   				}
-// 			}
-// 			//guardar en el log que comienza la atención
-// 			pthread_mutex_lock(&semaforoFichero);
-// 			fprintf(logFile, "El encargado comienza a atender al cliente %s\n", arrayClientes[clienteAtender].id);
-// 			pthread_mutex_unlock(&semaforoFichero);
-
-// 			//dormimos el tiempo de atención
-// 			sleep(tiempoAtencion);
-
-// 			//guardar en el log que finaliza la atención
-// 			pthread_mutex_lock(&semaforoFichero);
-// 			fprintf(logFile, "El encargado ha finalizado la atención al cliente %s\n", arrayClientes[clienteAtender].id);
-// 			pthread_mutex_unlock(&semaforoFichero);
-
-// 			//guardar en el log el motivo del fin de la atención
-// 			if(arrayClientes[clienteAtender].solicitud == 1){
-// 				pthread_mutex_lock(&semaforoFichero);
-// 				fprintf(logFile, "%s\n", atencionFinaliza);
-// 				pthread_mutex_unlock(&semaforoFichero);
-// 			}
-// 			else if(arrayClientes[clienteAtender].prioridad == 0){
-// 				pthread_mutex_lock(&semaforoFichero);
-// 				fprintf(logFile, "%s\n", muchaEspera);
-// 				pthread_mutex_unlock(&semaforoFichero);
-// 			}
-// 		}
-// 	}
-// }
 
 void *accionesEncargado(void *arg){
 	struct trabajador tecnico1;
@@ -756,22 +890,45 @@ void *accionesEncargado(void *arg){
 	}		
 }
 
-void accionesTecnicoDomiciliario(){
-	for(int i=0; i<nSolicitudesDomiciliarias; i++ ){
-		//hacer el apso 1
-
-		pthread_mutex_lock(&semaforoFichero);
-		writeLogMessage(atencionDomiciliariaText, arrayClientesSolicitudes[tiempoAtencion].id);
-		pthread_mutex_unlock(&semaforoFichero);
-
-		for(int i=0; i<nSolicitudesDomiciliarias; i++){
-			sleep(1);
+/* Realiza las acciones de los tecnicos domiciliarios*/
+void accionesTecnicoDomiciliario(void *ârg){
+	//Bucle que nos ayuda a volver a ejecutarla
+	while(1){
+		//Compruebo el numero de solicitudes si estas son menores que 4 se queda bloqueado hasta que lo sean 4
+		while(nSolicitudesDomiciliarias<4){
+			pthread_cond_wait(&condicionSaleViaje);
 		}
-
-		pthread_mutex_lock(&semaforoFichero);
-		writeLogMessage(atencionDomiciliariaAtendido, arrayClientesSolicitudes[tiempoAtencion].id);
-		pthread_mutex_unlock(&semaforoFichero);
-		nSolicitudesDomiciliarias
+		//Bucle for que recorre el arraySolicitudes con el fin de atender todos
+		for(int i=0; i<nSolicitudesDomiciliarias; i++ ){
+			//Semaforo del fichero ya que le indicamos que se comienza la atencion
+			pthread_mutex_lock(&semaforoFichero);
+			writeLogMessage(atencionDomiciliariaText, arrayClientesSolicitudes[tiempoAtencion].id);
+			pthread_mutex_unlock(&semaforoFichero);
+			//Dormimos uno para cada peticion
+			sleep(1);
+			//Semaforo del fichero ya que le indicamos que se ha atendido una solicitud
+			pthread_mutex_lock(&semaforoFichero);
+			writeLogMessage(atencionDomiciliariaAtendido, arrayClientesSolicitudes[tiempoAtencion].id);
+			pthread_mutex_unlock(&semaforoFichero);
+			//Semaforo de colaCleintes ya que vamos a cambiar el valor del flag
+			pthread_mutex_lock(&semaforoColaClientes);
+			arrayClientesSolicitudes[i].atendido=0;
+			pthread_mutex_unlock(&semaforoColaClientes);
+			//Semaforo de solicitudes ya que se va a modificar el numero de solicitudes a 0
+			pthread_mutex_lock(&semaforoSolicitudes);
+			//Comrpobamos que se este atendiendo la ultima atencion en domicilio
+			if(i==3){
+				nSolicitudesDomiciliarias=0;
+			}
+			pthread_mutex_unlock(&semaforoSolicitudes);
+			//Semaforo de Fichero ya que se ha finalizado la atencion domiciliaria
+			pthread_mutex_lock(&semaforoFichero);
+			writeLogMessage(atencionDomiciliariaFin, arrayClientesSolicitudes[tiempoAtencion].id);
+			pthread_mutex_unlock(&semaforoFichero);
+			//Se avisa que los que esperaban por la solicitud domiciliaria se finaliza
+			pthread_cond_signal(&condicionTerminaViaje);
+		}
+		
 	}
 
 
@@ -831,12 +988,13 @@ void finalizarPrograma (int signal) {
 }
 
 /****************************************** FUNCIONES AUXILIARES ******************************************/
+/*Funcion que detecta el primer cleinte que se debe atender de tipo APP*/
 int mayorPrioridad(){
 	int mayorPrioridad=-999;
 	int pos=0;
 	for(int i=0; i<nClientes; i++){
 		if(arrayClientes[i].tipo="App"){
-			//Comprobamos solo la prioridad porque al ser un array por orden de llegada el primero va a ser el que devuelva, es decir el que mas tiempo lleve esperando
+			//Comrpobamos solo la prioridad proque al ser un array por orden de llegada el primero va a ser el que devuelva, es decir el que mas tiempo lleve espernado
 			if(mayorPrioridad<arrayClientes[i].prioridad){
 				mayorPrioridad=arrayClientes[i].prioridad;
 				pos=i;
@@ -845,8 +1003,8 @@ int mayorPrioridad(){
 
 	}
 	return pos;
-}
-
+}	
+/* Funcion que detecta el primer cleinte que se debe atender de tipo Red*/
 int mayorPrioridadRed(){
 	int mayorPrioridad=-999;
 	int posRed=0;
