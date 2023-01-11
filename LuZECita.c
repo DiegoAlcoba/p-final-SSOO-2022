@@ -29,7 +29,7 @@ void writeLogMessage(char *id, char *msg);
 int mayorPrioridadRed();
 int mayorPrioridad();
 void finalizarPrograma (int signal);
-void accionesTecnicoDomiciliario(void *arg);
+void *accionesTecnicoDomiciliario(void *arg);
 void *accionesEncargado(void *arg);
 void *accionesTecnico(void *arg);
 void *accionesCliente (void* nuevoCliente);
@@ -51,7 +51,7 @@ char *clienteEmpiezaAtendido= "El cliente comienza a ser atendido.";
 char *clienteFinalizaAtencion= "El cliente finaliza la atencion.";
 char *todoEnRegla= "Se ha finalizado la atencion ya que el cliente tenia todo en regla";
 char *malIdentificados= "Se ha finalizado la atencion ya que el cliente estaba mal identificado";
-char *confusionCompañia= "Se ha finalizado la atencion ya que el cliente se ha confundido de compañia";
+char *confusioncompanya= "Se ha finalizado la atencion ya que el cliente se ha confundido de compañia";
 char *signalFinalizacion = "    SIGINT";
 char *finPrograma = "SE PROCEDE A LA FINALIZACION DEL PROGRAMA";
 char *atencionDomiciliariaText= "Se comienza con la accion domiciliaria del cliente";
@@ -417,7 +417,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-					//Si la atencion es el otro 10% restante los cleintes se han equivocado de companya
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
 					}else{
 						//Calculo el timepo que tiene que dormir
 						tiempo=calculaAleatorios(1,2);
@@ -433,7 +433,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_unlock(&semaforoFichero);
 						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
-						writeLogMessage(confusionCompanyia, arrayClientes[tiempoAtencion].id);
+						writeLogMessage(confusioncompanya, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
 					}
 					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
@@ -496,7 +496,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(malIdentificados, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
-					//Si la atencion es el otro 10% restante los cleintes se han equivocado de companya
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
 					}else{
 						//Calculo el timepo que tiene que dormir
 						tiempo=calculaAleatorios(1,2);
@@ -512,7 +512,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_unlock(&semaforoFichero);
 						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
-						writeLogMessage(confusionCompanyia, arrayClientes[tiempoAtencion].id);
+						writeLogMessage(confusioncompanya, arrayClientes[tiempoAtencion].id);
 						pthread_mutex_unlock(&semaforoFichero);
 					}
 					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
@@ -597,7 +597,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(malIdentificados, arrayClientes[atencionTiempo].id);
 						pthread_mutex_unlock(&semaforoFichero);
-					//Si la atencion es el otro 10% restante los cleintes se han equivocado de companya
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
 					}else{
 
 						//Calculo el timepo que tiene que dormir
@@ -614,7 +614,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_unlock(&semaforoFichero);
 						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
-						writeLogMessage(confusionCompanyia, arrayClientes[atencionTiempo].id);
+						writeLogMessage(confusioncompanya, arrayClientes[atencionTiempo].id);
 						pthread_mutex_unlock(&semaforoFichero);
 					}
 					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
@@ -698,7 +698,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_lock(&semaforoFichero);
 						writeLogMessage(malIdentificados, arrayClientes[atencionTiempo].id);
 						pthread_mutex_unlock(&semaforoFichero);
-					//Si la atencion es el otro 10% restante los cleintes se han equivocado de companya
+					//Si la atencion es el otro 10% restante los cleintes se han equivocado de compañia
 					}else{
 
 						//Calculo el timepo que tiene que dormir
@@ -715,7 +715,7 @@ void *accionesTecnico(void *arg){
 						pthread_mutex_unlock(&semaforoFichero);
 						//guardo el log que indica la causa de la salida
 						pthread_mutex_lock(&semaforoFichero);
-						writeLogMessage(confusionCompanyia, arrayClientes[atencionTiempo].id);
+						writeLogMessage(confusioncompanya, arrayClientes[atencionTiempo].id);
 						pthread_mutex_unlock(&semaforoFichero);
 					}
 					//Semaforo para cambiar el estado de cliente siendo atendido por atendido
@@ -827,7 +827,7 @@ void *accionesEncargado(void *arg){
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoFichero);
-							writeLogMessage(confusionCompañia, arrayClientes[prio].id);
+							writeLogMessage(confusioncompanya, arrayClientes[prio].id);
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoColaClientes);
@@ -942,7 +942,7 @@ void *accionesEncargado(void *arg){
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoFichero);
-							writeLogMessage(confusionCompañia, arrayClientes[prio2].id);
+							writeLogMessage(confusioncompanya, arrayClientes[prio2].id);
 							pthread_mutex_unlock(&semaforoFichero);
 
 							pthread_mutex_lock(&semaforoColaClientes);
