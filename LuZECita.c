@@ -175,7 +175,8 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 		arrayClientes[nClientes-1]=nuevoCliente; //asigna la estructura nuevoCliente al ultimo elemento de arrayClientes
 		pthread_t hiloClientes; // declaramos hiloClientes para almacenar el identificador de un hilo específico
 		arrayHilosClientes[nClientes-1]=hiloClientes; //asigna la estructura hiloClientes al ultimo elemento de arrayHilosClientes
-		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)(nClientes-1)); //pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada, se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
+		pthread_create(&arrayHilosClientes[nClientes], NULL, accionesCliente, (void*)((long)nClientes-1));
+ //pthread_create() esta creando un nuevo hilo y asignandole la funcion accionesCliente() como funcion de entrada, se almacena en el elemento nClientes de arrayHilosClientes. La funcion accionesCliente() recibe como argumento el indice del elemento del arreglo de clientes correspondiente al hilo
 		pthread_mutex_unlock(&semaforoColaClientes);
 		
 		printf("Se ha creado un nuevo cliente con ID %s y tipo %s\n", nuevoCliente.id, nuevoCliente.tipo);
