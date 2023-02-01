@@ -85,16 +85,18 @@ struct cliente *arrayClientes;
 /*Estructuras*/
 //estructura que guarda la informacion del cliente
 struct cliente{
-	char *id;		//no seria mejor poner el id como int? NO PORQUE EL IDENTIFICADOR ES CLIAPP_1
+	//char *id;		
+	char id[30];
 	int atendido;	//0 no atendido, 1 está siendo atendido, 2 ha sido atendido
 	int tipo;		//0 = no tiene, 1 = App, 2 = Red
-	int prioridad;	//Array de hilo-cliente
+	int prioridad;	
 	int solicitud;	//0 = no solicitud, 1 = esperando la atención domiciliaria, 2 = ha solicitado atención domiciliaria
 };
 
 //estructura que guarda la informacion del trabajador
 struct trabajador{ 
-	char *id;	
+	//char *id;	
+	char id[30];
 	int clientesAtendidos;
 	int tipo; //1 = tecnico, 2 = responsable, 3 = encargado
 	int libre; //0 si esta libre 1 si esta ocupado
@@ -123,7 +125,8 @@ void crearNuevoCliente(int signum) { //Solo recibe como argumento la señal, la 
 		nClientes++;	//aumentamos el contador de clientes totales
 		pthread_mutex_unlock(&semaforoColaClientes);
 
-		char numeroId [10];		//creamos numeroId
+		//char numeroId [10];		//creamos numeroId
+		char numeroId [3];		//creamos numeroId
 		printf("Hay un nuevo cliente\n");
 		
 		//Vemos si el cliente es de la app o red
@@ -1177,14 +1180,16 @@ int main(int argc, char* argv[]) {
 
 	//Lista de tipos de clientes
 	struct cliente clienteApp;
-		clienteApp.id = "cliapp_"; //Luego en cada cliente creado se le anyade el número al final de la cadena de caracteres con ¿strcat? creo
+		//clienteApp.id = "cliapp_"; //Luego en cada cliente creado se le anyade el número al final de la cadena de caracteres con ¿strcat? creo
+		memcpy(clienteApp.id, "cliapp_", 7);
 		clienteApp.atendido = 0;
 		clienteApp.tipo = 0;
 		clienteApp.prioridad = 0;
 		clienteApp.solicitud = 0;
 
 	struct cliente clienteRed ;
-		clienteRed.id = "clired_"; //Luego en cada cliente creado se le anyade el número al final de la cadena de caracteres con ¿strcat? creo
+		//clienteRed.id = "clired_"; //Luego en cada cliente creado se le anyade el número al final de la cadena de caracteres con ¿strcat? creo
+		memcpy(clienteRed.id, "cliapp_", 7);
 		clienteRed.atendido = 0;
 		clienteRed.tipo = 0;
 		clienteRed.prioridad = 0;
@@ -1193,33 +1198,38 @@ int main(int argc, char* argv[]) {
 	//Lista de trabajadores
 	/*Técnicos*/
 	struct trabajador tecnico1;
-	tecnico1.id = "tecnico1";
+	//tecnico1.id = "tecnico1";
+	memcpy(tecnico1.id, "tecnico1", 8);
 	tecnico1.clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 	tecnico1.tipo = 1;
 	tecnico1.libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	struct trabajador tecnico2;
-	tecnico2.id = "tecnico2";
+	//tecnico2.id = "tecnico2";
+	memcpy(tecnico2.id, "tecnico2", 8);
 	tecnico2.clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 	tecnico2.tipo = 1;
 	tecnico2.libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	/*Responsables de reparaciones*/
 	struct trabajador responsable1;
-	responsable1.id = "responsable1";
+	//responsable1.id = "responsable1";
+	memcpy(responsable1.id, "responsable1", 12);
 	responsable1.clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 	responsable1.tipo = 2;
 	responsable1.libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	struct trabajador responsable2;
-	responsable2.id = "responsable2";
+	//responsable2.id = "responsable2";
+	memcpy(responsable2.id, "responsable2", 12);
 	responsable2.clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 	responsable2.tipo = 2;
 	responsable2.libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 
 	/*Encargado*/
 	struct trabajador encargado;
-	encargado.id = "encargado";
+	//encargado.id = "encargado";
+	memcpy(encargado.id, "encargado", 9);
 	encargado.clientesAtendidos = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
 	encargado.tipo = 3;
 	encargado.libre = 0;	//No estoy seguro si hace falta inicializar a 0 esto o ya lo está
